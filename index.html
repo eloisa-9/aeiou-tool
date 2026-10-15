@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>梭编串珠设计工具 · Vector Tatting Editor</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:#1f2937;background:#f3f4f6;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+h3{font-weight:600;}
+#app{display:flex;height:100vh;overflow:hidden;}
+
+.panel{background:#fff;display:flex;flex-direction:column;overflow-y:auto;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.left-panel{width:256px;border-right:1px solid #e5e7eb;flex-shrink:0;}
+.right-panel{width:282px;border-left:1px solid #e5e7eb;flex-shrink:0;}
+.panel-section{padding:13px 16px;border-bottom:1px solid #f3f4f6;}
+.panel-title{font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px;}
+.sub-label{display:block;font-size:11px;color:#9ca3af;margin:8px 0 4px;}
+.micro-hint{font-size:10px;color:#d1d5db;margin-top:5px;line-height:1.4;}
+
+.template-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.tpl-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;transition:.15s;font-size:11px;color:#4b5563;}
+.tpl-btn:hover{border-color:#7c3aed;color:#7c3aed;background:#faf5ff;}
+.tpl-icon{width:30px;height:30px;}
+
+.component-list{display:flex;flex-direction:column;gap:6px;}
+.add-btn{padding:8px;border:1px dashed #a78bfa;border-radius:7px;color:#6d28d9;font-size:12px;background:#faf5ff;transition:.15s;}
+.add-btn:hover{background:#f3e8ff;border-style:solid;}
+
+.size-row{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;}
+.size-btn{padding:6px 0;border:1px solid #e5e7eb;border-radius:6px;font-size:11px;color:#4b5563;transition:.15s;}
+.size-btn:hover{border-color:#a78bfa;}
+.size-btn.active{background:#7c3aed;border-color:#7c3aed;color:#fff;}
+
+.sel{width:100%;height:30px;padding:0 26px 0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;background:#fff;color:#1f2937;}
+.color-input{width:100%;height:32px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;}
+.num-input{width:100%;height:30px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;background:#fff;}
+.apply-btn{width:100%;height:30px;margin-top:7px;border:1px solid #7c3aed;border-radius:6px;background:#7c3aed;color:#fff;font-size:12px;transition:.15s;}
+.apply-btn:hover{background:#6d28d9;}
+
+.canvas-area{flex:1;display:flex;flex-direction:column;min-width:0;background:#fafafa;}
+.toolbar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:#fff;border-bottom:1px solid #e5e7eb;flex-wrap:wrap;}
+.tb-group{display:flex;align-items:center;gap:3px;padding-right:8px;border-right:1px solid #f3f4f6;}
+.tb-group:last-child{border-right:none;}
+.tb-btn{min-width:30px;height:28px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;font-size:12px;color:#4b5563;transition:.15s;display:inline-flex;align-items:center;justify-content:center;}
+.tb-btn:hover{border-color:#7c3aed;color:#7c3aed;background:#faf5ff;}
+.tb-btn.toggle.active{background:#7c3aed;color:#fff;border-color:#7c3aed;}
+.zoom-label{font-size:11px;color:#9ca3af;margin-left:3px;}
+.tb-hint{border-right:none;margin-left:auto;}
+.tb-hint span{font-size:11px;color:#9ca3af;}
+
+.canvas-wrap{flex:1;position:relative;overflow:hidden;background:linear-gradient(#eef0f3 1px,transparent 1px),linear-gradient(90deg,#eef0f3 1px,transparent 1px),#fff;background-size:20px 20px;}
+#canvas{width:100%;height:100%;display:block;cursor:default;}
+#canvas.panning{cursor:grabbing;}
+#canvas.space{cursor:grab;}
+.status-bar{position:absolute;left:8px;bottom:8px;font-size:11px;color:#6b7280;background:rgba(255,255,255,.85);padding:3px 8px;border-radius:5px;border:1px solid #e5e7eb;}
+
+.props-content{padding:14px;}
+.empty-tip{text-align:center;color:#9ca3af;padding:28px 8px;}
+.empty-icon{font-size:38px;color:#d1d5db;margin-bottom:8px;}
+.empty-tip p{font-size:13px;margin-bottom:4px;}
+.empty-sub{font-size:11px!important;color:#d1d5db!important;line-height:1.5;}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid #f3f4f6;}
+.section-head h3{font-size:13px;color:#1f2937;}
+.type-badge{font-size:10px;padding:2px 8px;border-radius:10px;background:#ede9fe;color:#6d28d9;}
+.prop-block{margin-bottom:11px;}
+.prop-label{font-size:11px;color:#6b7280;margin-bottom:4px;display:block;}
+.prop-row{display:flex;align-items:center;gap:7px;margin-bottom:8px;}
+.prop-input,.prop-sel{flex:1;height:28px;padding:0 7px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;background:#fff;color:#1f2937;}
+.prop-input:focus,.prop-sel:focus{outline:none;border-color:#7c3aed;}
+.prop-color{width:38px;height:28px;padding:0;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;}
+.len-readout{font-size:11px;color:#6d28d9;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:5px;padding:4px 7px;margin-bottom:9px;}
+.len-readout b{font-weight:600;}
+
+.card{border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-bottom:6px;background:#fff;}
+.card .c-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.card .c-title{font-weight:600;font-size:12px;color:#374151;}
+.card .c-del{color:#9ca3af;font-size:15px;line-height:1;cursor:pointer;}
+.card .c-del:hover{color:#b91c1c;}
+.card .c-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px;}
+.card select,.card input[type=number]{flex:1;height:24px;padding:0 5px;border:1px solid #e5e7eb;border-radius:5px;font-size:11px;}
+.card input[type=range]{flex:1;}
+.card .c-swatch{width:20px;height:20px;border-radius:50%;border:1px solid #e5e7eb;flex-shrink:0;}
+.btn-danger{width:100%;height:30px;border:1px solid #fca5a5;border-radius:6px;color:#b91c1c;font-size:12px;background:#fff;transition:.15s;margin-top:8px;}
+.btn-danger:hover{background:#fef2f2;}
+.btn-add-small{width:100%;height:28px;border:1px dashed #a78bfa;border-radius:6px;color:#7c3aed;font-size:11px;transition:.15s;margin-top:5px;}
+.btn-add-small:hover{background:#faf5ff;}
+
+select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%239ca3af' fill='none'/></svg>");background-repeat:no-repeat;background-position:right 6px center;}
+
+.el-seg{cursor:move;}
+.endpoint{fill:#7c3aed;stroke:#fff;stroke-width:1.5;cursor:move;}
+.knot{pointer-events:none;}
+.sel-outline{fill:none;stroke:#7c3aed;stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none;}
+.snap-marker{fill:none;stroke:#10b981;stroke-width:2;}
+.step-num{font-size:9px;fill:#7c3aed;font-weight:600;pointer-events:none;text-anchor:middle;dominant-baseline:central;}
+.arrow{fill:#7c3aed;pointer-events:none;}
+
+.grp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.knot-label{font-size:12px;font-weight:700;fill:#111827;paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;text-anchor:middle;dominant-baseline:middle;pointer-events:none;}
+.join-dot{fill:#10b981;stroke:#fff;stroke-width:1;pointer-events:none;}
+#rubber{position:absolute;display:none;border:1px dashed #7c3aed;background:rgba(124,58,237,.08);pointer-events:none;z-index:5;}
+.endpoint.linked{fill:#94a3b8;}
+.picot-tip{fill:#7c3aed;stroke:#fff;stroke-width:1;cursor:move;}
+.rot-handle{fill:#7c3aed;stroke:#fff;stroke-width:1.5;cursor:grab;}
+.rot-handle:hover{fill:#6d28d9;}
+.asp-handle{fill:#0ea5e9;stroke:#fff;stroke-width:1.5;cursor:grab;}
+.asp-handle:hover{fill:#0284c7;}
+.ins-preview{fill:none;stroke:#10b981;stroke-width:2;pointer-events:none;}
+.ins-preview-label{font-size:11px;font-weight:700;fill:#059669;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;text-anchor:middle;pointer-events:none;}
+.part-label-box{pointer-events:none;}
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ 左栏：素材面板 ============ -->
+  <aside class="panel left-panel">
+    <div class="panel-section">
+      <h3 class="panel-title">模板（一键加载编织序列）</h3>
+      <div class="template-grid">
+        <button class="tpl-btn" data-tpl="ring">
+          <svg viewBox="0 0 40 40" class="tpl-icon"><path d="M8 20 C8 10 32 10 32 20 C32 30 8 30 8 20Z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          <span>戒指</span>
+        </button>
+        <button class="tpl-btn" data-tpl="bracelet">
+          <svg viewBox="0 0 40 40" class="tpl-icon">
+            <ellipse cx="9" cy="20" rx="5" ry="6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <ellipse cx="20" cy="20" rx="5" ry="6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <ellipse cx="31" cy="20" rx="5" ry="6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          </svg>
+          <span>手链</span>
+        </button>
+        <button class="tpl-btn" data-tpl="earring">
+          <svg viewBox="0 0 40 40" class="tpl-icon">
+            <ellipse cx="20" cy="11" rx="7" ry="8" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M20 19 Q20 26 20 30" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <circle cx="20" cy="33" r="3" fill="currentColor"/>
+          </svg>
+          <span>耳环</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3 class="panel-title">构件（插入编织序列）</h3>
+      <div class="component-list">
+        <button class="add-btn" data-add="ring">＋ 添加环</button>
+        <button class="add-btn" data-add="splitring">＋ 添加分裂环</button>
+        <button class="add-btn" data-add="bridge">＋ 添加桥</button>
+      </div>
+      <p class="micro-hint">环拖动=移动，选中后拖手柄旋转/调扁度（周长锁定）；桥端拖拽不可超过线长</p>
+    </div>
+
+    <div class="panel-section">
+      <h3 class="panel-title">编组（花片重复单元）</h3>
+      <div class="grp-grid">
+        <button class="add-btn" id="grpMake">成组</button>
+        <button class="add-btn" id="grpCopy">复制组</button>
+        <button class="add-btn" id="grpArray">阵列重复</button>
+        <button class="add-btn" id="grpUngroup">解散组</button>
+      </div>
+      <label class="sub-label">阵列份数（含原件）</label>
+      <input type="number" class="num-input" id="arrayCount" min="2" max="12" value="3">
+      <p class="micro-hint">空白处拖框选多段（Shift+点选加选）→ 成组 → 复制 / 阵列</p>
+    </div>
+
+    <div class="panel-section">
+      <h3 class="panel-title">珠子设置</h3>
+      <label class="sub-label">加珠方式</label>
+      <p class="micro-hint" style="margin:0 0 4px">点下方按钮后，在画布线段的<b>元宝结位</b>上点击插入；珠子按簇状规则排布于线外侧，并自动打断线段、分配结数。</p>
+      <label class="sub-label">尺寸</label>
+      <div class="size-row" id="beadSizeRow">
+        <button class="size-btn" data-size="2">2</button>
+        <button class="size-btn" data-size="3">3</button>
+        <button class="size-btn active" data-size="4">4</button>
+        <button class="size-btn" data-size="6">6</button>
+        <button class="size-btn" data-size="8">8</button>
+      </div>
+      <label class="sub-label">材质</label>
+      <select class="sel" id="beadMaterial">
+        <option value="pearl">珍珠</option>
+        <option value="metal" selected>金属</option>
+        <option value="glass">玻璃</option>
+        <option value="acrylic">亚克力</option>
+        <option value="crystal">晶石</option>
+        <option value="seed">米珠</option>
+      </select>
+      <label class="sub-label">颜色</label>
+      <input type="color" id="beadColor" class="color-input" value="#d97706">
+      <label class="sub-label">数量（批量连续添加）</label>
+      <input type="number" class="num-input" id="beadQty" min="1" max="20" value="1">
+      <button class="apply-btn" id="addBeadBtn">插入珠子（点击线段结位）</button>
+    </div>
+
+    <div class="panel-section">
+      <h3 class="panel-title">接耳 (Picot) 设置</h3>
+      <label class="sub-label">接耳类型</label>
+      <select class="sel" id="picotType">
+        <option value="empty">基础空接耳</option>
+        <option value="bead">接耳带珠</option>
+        <option value="split">分裂接耳</option>
+        <option value="join">接合接耳</option>
+      </select>
+      <label class="sub-label">接耳长度（占用结数·单位）</label>
+      <input type="number" class="num-input" id="picotSize" min="1" max="6" value="1" step="1">
+      <button class="apply-btn" id="addPicotBtn">插入接耳（点击线段结位）</button>
+      <p class="micro-hint">接耳锚在元宝结上并打断线段；拖动接耳末端靠近另一接耳/节点 → 耳-耳扣合</p>
+    </div>
+
+    <div class="panel-section">
+      <h3 class="panel-title">线材</h3>
+      <label class="sub-label">线材颜色</label>
+      <input type="color" id="wireColor" class="color-input" value="#9ca3af">
+      <label class="sub-label">线材粗细 (mm) · 影响结长换算</label>
+      <input type="number" class="num-input" id="wireThick" min="0.2" max="3" value="0.8" step="0.1">
+    </div>
+  </aside>
+
+  <!-- ============ 中栏：画布 ============ -->
+  <main class="canvas-area">
+    <div class="toolbar">
+      <div class="tb-group">
+        <button class="tb-btn" id="btnUndo" title="撤销 Ctrl+Z">↶</button>
+        <button class="tb-btn" id="btnRedo" title="重做 Ctrl+Y">↷</button>
+      </div>
+      <div class="tb-group">
+        <button class="tb-btn" id="btnZoomIn" title="放大">＋</button>
+        <button class="tb-btn" id="btnZoomOut" title="缩小">－</button>
+        <button class="tb-btn" id="btnFit" title="适应">⊡</button>
+        <span class="zoom-label" id="zoomLabel">100%</span>
+      </div>
+      <div class="tb-group">
+        <button class="tb-btn toggle" id="btnArrows" title="显示/隐藏方向箭头">→ 方向</button>
+        <button class="tb-btn toggle" id="btnNumbers" title="显示/隐藏编织序号">№ 序号</button>
+      </div>
+      <div class="tb-group">
+        <button class="tb-btn" id="btnClear" title="清空">清空</button>
+      </div>
+      <div class="tb-group">
+        <button class="tb-btn" id="btnSave" title="保存JSON">保存</button>
+        <button class="tb-btn" id="btnLoad" title="读取JSON">读取</button>
+      </div>
+      <div class="tb-group">
+        <button class="tb-btn" id="btnPng" title="导出PNG">导出图片</button>
+        <button class="tb-btn" id="btnList" title="导出编织工艺单">导出清单</button>
+      </div>
+      <div class="tb-group tb-hint">
+        <span id="hintText">拖入环/桥 → 端点靠近自动吸附 → 点结位加珠/接耳 → 框选成组阵列 → 导出</span>
+      </div>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+        <defs id="defs"></defs>
+        <g id="viewport">
+          <g id="gridLayer"></g>
+          <g id="elementsLayer"></g>
+          <g id="overlayLayer"></g>
+        </g>
+      </svg>
+      <div id="rubber"></div>
+      <div class="status-bar" id="statusBar">就绪</div>
+    </div>
+  </main>
+
+  <!-- ============ 右栏：属性面板 ============ -->
+  <aside class="panel right-panel">
+    <div id="propsContent" class="props-content">
+      <div class="empty-tip">
+        <div class="empty-icon">⤳</div>
+        <p>未选中编织单元</p>
+        <p class="empty-sub">点击走线上的环 / 桥 / 珠子 / 接耳进行编辑</p>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<input type="file" id="fileInput" accept=".json" style="display:none">
+<script>
+/* ====================================================================
+   梭编图解编辑器 v5 — 连续线工艺模型
+   底层模型：连接点(Junction)图 + 子段(Part)序列
+   - 一切由连续线编织：环线走完一周回到起点；桥/分裂环换线位
+   - 线长=Σ子段单位×单位线长，禁止拖拽拉伸（桥端拖拽限长）
+   - 结子段独立标数，Σ标数=元宝结总数；珠/耳为额外占用长度（加法式，不扣结数）
+   - 分裂环：两根线各编半环 → 环有基点+分裂点两个可连接节点
+   - 珠子切合线外侧、簇状排布；接耳锚在结位，末端支持耳-耳扣合
+   - 环拖动=移动，选中后出现旋转/扁度手柄（周长始终锁定）
+   ==================================================================== */
+'use strict';
+const SVGNS='http://www.w3.org/2000/svg';
+const SCALE=6;            // px / mm
+const KNOT_PER_THICK=3;   // 1 单位(1个元宝结)线长 = 线粗 × 3 mm
+const SNAP_DIST=16, UNLINK_DIST=46;
+
+function el(tag,attrs){const e=document.createElementNS(SVGNS,tag);if(attrs)for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+function uid(p){return p+Math.random().toString(36).slice(2,8);}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function dist(x1,y1,x2,y2){return Math.hypot(x2-x1,y2-y1);}
+function norm(x,y){const l=Math.hypot(x,y)||1;return{x:x/l,y:y/l};}
+
+/* ---------- 数据 ---------- */
+const design={threadColor:'#9ca3af',threadThickness:0.8,elements:[],junctions:[],groups:[]};
+/* ring:   {id,type:'ring',cx,cy,aspect,rot,baseJ,split?,splitJ?,color,seq:[part],seqB?:[part]}
+           split 环由两根线编成：seq=线A(基点→分裂点), seqB=线B(分裂点→基点)，两个节点均可连接
+   bridge: {id,type:'bridge',aJ,bJ,color,seq:[part]}
+   part:   {t:'k',id,n} 元宝结子段(独立标数)
+           {t:'b',id,size,material,color,count,bu} 珠簇(bu=折算单位,额外占用线长)
+           {t:'p',id,units,type,bead,toJ} 接耳(占units单位,末端节点toJ)
+   junction:{id,x,y} 连接点(成员动态扫描; 环基点/分裂点成员时位置由环决定) */
+const view={pan:{x:0,y:0},zoom:1,spaceDown:false,showArrows:true,showNums:true,tool:null};
+const state={selIds:[],history:[],histIdx:-1,drag:null};
+const defaults={beadSize:4,beadMaterial:'metal',beadColor:'#d97706',beadQty:1,picotType:'empty',picotUnits:1};
+
+/* ---------- DOM ---------- */
+const svg=document.getElementById('canvas');
+const defs=document.getElementById('defs');
+const viewport=document.getElementById('viewport');
+const gridLayer=document.getElementById('gridLayer');
+const elementsLayer=document.getElementById('elementsLayer');
+const overlayLayer=document.getElementById('overlayLayer');
+const canvasWrap=document.getElementById('canvasWrap');
+const propsContent=document.getElementById('propsContent');
+const zoomLabel=document.getElementById('zoomLabel');
+const statusBar=document.getElementById('statusBar');
+const rubber=document.getElementById('rubber');
+
+/* ====================================================================
+   序列 / 单位
+   ==================================================================== */
+function knotLenMm(){return design.threadThickness*KNOT_PER_THICK;}
+function partLenMm(p){return p.t==='k'?p.n*knotLenMm():p.t==='b'?0:p.units*knotLenMm();} // 珠不占线长：加珠不改变周长/线长
+function sumLen(list){return list.reduce((a,p)=>a+partLenMm(p),0);}
+function seqLenMm(seg){return sumLen(seg.seq)+(seg.seqB?sumLen(seg.seqB):0);}
+function knotsOf(list){return list.reduce((a,p)=>a+(p.t==='k'?p.n:0),0);}
+function knotUnits(seg){return knotsOf(seg.seq)+(seg.seqB?knotsOf(seg.seqB):0);} // 元宝结总数=Σ结子段标数
+function totalUnits(seg){ // 线长占用单位 = 结 + 耳（珠不占）
+  const u=l=>l.reduce((a,p)=>a+(p.t==='k'?p.n:p.t==='b'?0:p.units),0);
+  return u(seg.seq)+(seg.seqB?u(seg.seqB):0);
+}
+function normalizeList(list){
+  const out=[];
+  for(const p of list){
+    if(p.t==='k'){if(p.n<=0)continue;const prev=out[out.length-1];if(prev&&prev.t==='k'){prev.n+=p.n;continue;}}
+    out.push(p);
+  }
+  if(!out.length)out.push({t:'k',id:uid('k'),n:4});
+  list.length=0;out.forEach(p=>list.push(p));
+}
+
+/* ====================================================================
+   环几何：周长=Σ单位×单位线长 锁定；椭圆仅调形态(aspect/rot)
+   ==================================================================== */
+function ringAxesPx(seg){
+  const P=Math.max(seqLenMm(seg)*SCALE,10);
+  const k=clamp(seg.aspect||0.8,0.4,1);
+  const a=P/(Math.PI*(3*(1+k)-Math.sqrt((3+k)*(1+3*k))));
+  return {a,b:a*k,P};
+}
+function rotRad(seg){return (seg.rot||0)*Math.PI/180;}
+function ringPointAtF(seg,f){
+  const {a,b}=ringAxesPx(seg);
+  const th=f*2*Math.PI;                      // f=0 → 长轴右端(基点)；f=0.5 → 长轴左端(分裂点)
+  const r=rotRad(seg);
+  const lx=a*Math.cos(th),ly=b*Math.sin(th);
+  return {x:seg.cx+lx*Math.cos(r)-ly*Math.sin(r),y:seg.cy+lx*Math.sin(r)+ly*Math.cos(r)};
+}
+function withPinnedBase(seg,fn){ // 调扁度时若基点已连接则保持焊点不动
+  const pinned=getJ(seg.baseJ)&&junctionMembers(seg.baseJ).length>1;
+  const bp=pinned?ringPointAtF(seg,0):null;
+  fn();
+  if(bp){const np=ringPointAtF(seg,0);seg.cx+=bp.x-np.x;seg.cy+=bp.y-np.y;}
+}
+function ringPivot(seg){ // 已连接环的公转支点：恰好一个节点与其他构件相连时返回该节点
+  const bConn=getJ(seg.baseJ)&&junctionMembers(seg.baseJ).some(x=>!(x.kind==='ringBase'&&x.seg.id===seg.id));
+  const sConn=seg.splitJ&&getJ(seg.splitJ)&&junctionMembers(seg.splitJ).some(x=>!(x.kind==='splitNode'&&x.seg.id===seg.id));
+  if(bConn&&!sConn)return seg.baseJ;
+  if(sConn&&!bConn)return seg.splitJ;
+  return null;
+}
+function ringTangentAtF(seg,f){
+  const p1=ringPointAtF(seg,(f-0.004+1)%1),p2=ringPointAtF(seg,(f+0.004)%1);
+  return norm(p2.x-p1.x,p2.y-p1.y);
+}
+function ringOutwardAtF(seg,f){const p=ringPointAtF(seg,f);return norm(p.x-seg.cx,p.y-seg.cy);}
+function ringVertExtent(seg){const{a,b}=ringAxesPx(seg);const r=rotRad(seg);return Math.sqrt((a*Math.sin(r))**2+(b*Math.cos(r))**2);}
+function ringPathD(seg){
+  let d='';for(let i=0;i<=48;i++){const p=ringPointAtF(seg,i/48);d+=(i===0?'M':'L')+p.x.toFixed(1)+' '+p.y.toFixed(1)+' ';}
+  return d+'Z';
+}
+function seqFracs(list,fA,fB){ // list 内各子段映射到全局弧位 [fA,fB]
+  const L=sumLen(list)*SCALE||1;let acc=0;const out=[];const span=fB-fA;
+  for(const p of list){const l=partLenMm(p)*SCALE;out.push({p,f0:fA+acc/L*span,f1:fA+(acc+l)/L*span});acc+=l;}
+  return out;
+}
+function partRange(seg,p){ // 子段所属线与全局弧位区间（分裂环：A=0~0.5, B=0.5~1）
+  if(seg.split&&seg.seqB&&seg.seqB.includes(p))return{list:seg.seqB,fA:0.5,fB:1};
+  return seg.split?{list:seg.seq,fA:0,fB:0.5}:{list:seg.seq,fA:0,fB:1};
+}
+
+/* ====================================================================
+   连接点（Junction）
+   ==================================================================== */
+function getJ(id){return design.junctions.find(j=>j.id===id);}
+function junctionMembers(jid){
+  const m=[];
+  for(const s of design.elements){
+    if(s.type==='ring'){
+      if(s.baseJ===jid)m.push({kind:'ringBase',seg:s});
+      if(s.splitJ===jid)m.push({kind:'splitNode',seg:s});
+    } else {
+      if(s.aJ===jid)m.push({kind:'bridgeEnd',seg:s,end:'a'});
+      if(s.bJ===jid)m.push({kind:'bridgeEnd',seg:s,end:'b'});
+    }
+    for(const p of s.seq)if((p.t==='p'||p.t==='b')&&p.toJ===jid)m.push({kind:p.t==='p'?'picot':'beadTip',seg:s,part:p}); // 耳/珠tip均计入
+    if(s.seqB)for(const p of s.seqB)if((p.t==='p'||p.t==='b')&&p.toJ===jid)m.push({kind:p.t==='p'?'picot':'beadTip',seg:s,part:p});
+  }
+  return m;
+}
+function junctionPos(jid){
+  const J=getJ(jid);if(!J)return{x:0,y:0};
+  const m=junctionMembers(jid);
+  const rb=m.find(x=>x.kind==='ringBase');
+  if(rb)return ringPointAtF(rb.seg,0);
+  const sn=m.find(x=>x.kind==='splitNode');
+  if(sn)return ringPointAtF(sn.seg,0.5);
+  return{x:J.x,y:J.y};
+}
+function resolveJunctions(){ // 接耳/珠tip连接点跟随其自然末端
+  for(const J of design.junctions){
+    const m=junctionMembers(J.id);
+    if(m.some(x=>x.kind==='ringBase'||x.kind==='splitNode'))continue;
+    const pc=m.find(x=>x.kind==='picot'||x.kind==='beadTip');
+    if(pc){
+      const tip=pc.kind==='picot'?picotNatTip(pc.seg,pc.part):beadTipPos(pc.seg,pc.part);
+      J.x=tip.x;J.y=tip.y;
+    }
+  }
+}
+function mergeJunctions(srcId,dstId){
+  if(srcId===dstId)return true;
+  const all=junctionMembers(srcId).concat(junctionMembers(dstId));
+  const tips=all.filter(x=>x.kind==='picot'||x.kind==='beadTip').length;
+  const nodes=all.length-tips;
+  if(tips>2||(tips>0&&nodes>0))return false; // 耳/珠tip仅两两相接，且不可接到环/桥节点
+  for(const s of design.elements){
+    if(s.type==='ring'){
+      if(s.baseJ===srcId)s.baseJ=dstId;
+      if(s.splitJ===srcId)s.splitJ=dstId;
+    } else {
+      if(s.aJ===srcId)s.aJ=dstId;if(s.bJ===srcId)s.bJ=dstId;
+    }
+    for(const p of s.seq)if((p.t==='p'||p.t==='b')&&p.toJ===srcId)p.toJ=dstId; // 耳/珠均重指向
+    if(s.seqB)for(const p of s.seqB)if((p.t==='p'||p.t==='b')&&p.toJ===srcId)p.toJ=dstId;
+  }
+  design.junctions=design.junctions.filter(j=>j.id!==srcId);
+  return true;
+}
+function newJunction(x,y){const j={id:uid('j'),x,y};design.junctions.push(j);return j;}
+function cleanupJunctions(){design.junctions=design.junctions.filter(j=>junctionMembers(j.id).length>0);}
+function unlinkJunction(jid,seg){ // 把 seg 从连接点拆出，给它独立新点
+  const p=junctionPos(jid);
+  if(seg.type==='ring'){
+    const nj=newJunction(p.x,p.y);
+    if(seg.baseJ===jid)seg.baseJ=nj.id;else if(seg.splitJ===jid)seg.splitJ=nj.id;
+  } else {
+    const nj=newJunction(p.x,p.y);
+    if(seg.aJ===jid)seg.aJ=nj.id;else if(seg.bJ===jid)seg.bJ=nj.id;
+  }
+}
+function nameOfSeg(id){const i=segIdx(id);return i<0?'?':(design.elements[i].type==='ring'?'环':'桥')+(i+1);}
+
+/* ====================================================================
+   桥几何：线长=Σ单位×单位线长；端点=连接点
+   ==================================================================== */
+function bridgeEnds(seg){
+  return {A:junctionPos(seg.aJ),B:junctionPos(seg.bJ)};
+}
+function bridgeGeom(seg){
+  const {A,B}=bridgeEnds(seg);
+  const L=seqLenMm(seg)*SCALE;
+  const d=dist(A.x,A.y,B.x,B.y)||1;
+  const nx=-(B.y-A.y)/d,ny=(B.x-A.x)/d;
+  const sag=Math.max(0,L-d)*0.42;
+  return {A,B,cx:(A.x+B.x)/2+nx*sag,cy:(A.y+B.y)/2+ny*sag,L,d};
+}
+function clampBridgeEnd(seg,jid,J){ // 桥不可拉伸：自由端与另一端距离≤线长
+  const L=seqLenMm(seg)*SCALE;
+  const O=junctionPos(jid===seg.aJ?seg.bJ:seg.aJ);
+  const dd=dist(J.x,J.y,O.x,O.y);
+  if(dd>L){const f=(L-0.5)/dd;J.x=O.x+(J.x-O.x)*f;J.y=O.y+(J.y-O.y)*f;}
+}
+function bezAt(g,t){const u=1-t;return{x:u*u*g.A.x+2*u*t*g.cx+t*t*g.B.x,y:u*u*g.A.y+2*u*t*g.cy+t*t*g.B.y};}
+function bezTan(g,t){const u=1-t;return{x:2*u*(g.cx-g.A.x)+2*t*(g.B.x-g.cx),y:2*u*(g.cy-g.A.y)+2*t*(g.B.y-g.cy)};}
+function bridgeLUT(seg){ // 弧长参数化（近似）
+  const g=bridgeGeom(seg);const N=24;const cum=[0];
+  let prev=bezAt(g,0);
+  for(let i=1;i<=N;i++){const p=bezAt(g,i/N);cum.push(cum[i-1]+dist(prev.x,prev.y,p.x,p.y));prev=p;}
+  return {g,cum,total:cum[N]||1,N};
+}
+function bridgeFToT(lut,f){ // 弧长比例f → 参数t
+  const target=f*lut.total;
+  for(let i=1;i<=lut.N;i++){
+    if(cum_i(lut,i)>=target){
+      const seg=lut.cum[i]-lut.cum[i-1]||1;
+      return (i-1+(target-lut.cum[i-1])/seg)/lut.N;
+    }
+  }
+  return 1;
+}
+function cum_i(lut,i){return lut.cum[i];}
+function bridgePointAtF(seg,f){
+  const lut=bridgeLUT(seg);const t=bridgeFToT(lut,f);
+  return {p:bezAt(lut.g,t),tan:norm2(bezTan(lut.g,t))};
+}
+function norm2(v){return norm(v.x,v.y);}
+
+/* ====================================================================
+   珠簇 / 接耳 定位
+   ==================================================================== */
+function clusterRows(count){
+  const hard={1:[1],2:[2],3:[2,1],4:[2,2],5:[2,2,1]};
+  if(hard[count])return hard[count];
+  const rows=[];let rem=count;
+  while(rem>0){const r=Math.min(3,rem);rows.push(r);rem-=r;}
+  return rows;
+}
+function beadPoint(seg,p,f){ // 珠簇中心（弧位中点）
+  if(seg.type==='ring')return ringPointAtF(seg,f);
+  return bridgePointAtF(seg,f).p;
+}
+function beadFrame(seg,f){ // {pos, out 外法向, tan 切向}
+  if(seg.type==='ring'){
+    const pos=ringPointAtF(seg,f);
+    return {pos,out:ringOutwardAtF(seg,f),tan:ringTangentAtF(seg,f)};
+  }
+  const r=bridgePointAtF(seg,f);
+  let out=r.tan.y>0?{x:-r.tan.x,y:-r.tan.y}:{x:r.tan.x,y:r.tan.y};
+  out=norm(out.x,out.y);
+  return {pos:r.p,out,tan:r.tan};
+}
+function picotNatTip(seg,p){ // 未连接时接耳自然末端
+  const pr=partRange(seg,p);const fr=seqFracs(pr.list,pr.fA,pr.fB);const e=fr.find(x=>x.p===p);const f=(e.f0+e.f1)/2;
+  const fm=beadFrame(seg,f);
+  return {x:fm.pos.x+fm.out.x*p.units*knotLenMm()*SCALE,y:fm.pos.y+fm.out.y*p.units*knotLenMm()*SCALE,frame:fm};
+}
+function picotTip(seg,p){
+  if(p.toJ)return junctionPos(p.toJ);
+  const t=picotNatTip(seg,p);return {x:t.x,y:t.y};
+}
+function beadExtPx(p){ // 珠簇凸出长度（tip 用）
+  const rad=Math.max(2.2,p.size*SCALE/2*0.6);
+  return rad*clusterRows(p.count).length*1.85+rad+3;
+}
+function beadTipPos(seg,p){ // 珠簇外端：珠子处也算一种凸出物，可扣合
+  const pr=partRange(seg,p);const fr=seqFracs(pr.list,pr.fA,pr.fB);const e=fr.find(x=>x.p===p);
+  const f=e?(e.f0+e.f1)/2:0;
+  const fm=beadFrame(seg,f);
+  return {x:fm.pos.x+fm.out.x*beadExtPx(p),y:fm.pos.y+fm.out.y*beadExtPx(p)};
+}
+function partTip(seg,p){return p.t==='p'?picotTip(seg,p):beadTipPos(seg,p);}
+
+/* ---------- 查找 ---------- */
+function getSeg(id){return design.elements.find(s=>s.id===id);}
+function segIdx(id){return design.elements.findIndex(s=>s.id===id);}
+function findPart(pid){for(const s of design.elements){let p=s.seq.find(x=>x.id===pid);if(p)return{seg:s,part:p};if(s.seqB){p=s.seqB.find(x=>x.id===pid);if(p)return{seg:s,part:p};}}return null;}
+function eachPart(seg,cb){seg.seq.forEach(cb);if(seg.seqB)seg.seqB.forEach(cb);}
+function selSegs(){const set=new Set();for(const s of state.selIds)if(s.kind==='seg')set.add(s.segId);return design.elements.filter(s=>set.has(s.id));}
+
+/* ---------- 材质 ---------- */
+function renderDefs(){
+  defs.innerHTML='';
+  const mk=(id,stops,attrs={})=>{const g=el('radialGradient',Object.assign({id},attrs));for(const[s,c,o]of stops)g.appendChild(el('stop',{offset:s,'stop-color':c,'stop-opacity':o==null?1:o}));defs.appendChild(g);};
+  mk('mat-pearl',[['0%','#ffffff'],['60%','#fbf3e0'],['100%','#e8d9b8']],{cx:'35%',cy:'30%',r:'70%'});
+  mk('mat-metal',[['0%','#f3f4f6'],['45%','#cbd5e1'],['100%','#64748b']],{cx:'35%',cy:'30%',r:'75%'});
+  mk('mat-glass',[['0%','#ffffff',0.9],['70%','#ffffff',0.25],['100%','#ffffff',0.1]],{cx:'35%',cy:'30%',r:'75%'});
+  mk('mat-crystal',[['0%','#ffffff',0.85],['35%','currentColor'],['100%','currentColor',0.85]],{cx:'35%',cy:'28%',r:'75%'});
+  mk('mat-seed',[['0%','#ffffff',0.95],['40%','currentColor'],['78%','currentColor',0.8],['100%','#ffffff',0.55]],{cx:'38%',cy:'32%',r:'72%'}); // 米珠：色玻璃镀银内壁
+}
+function beadFill(m,color){if(m==='acrylic')return color||'#e5e7eb';return {pearl:'url(#mat-pearl)',metal:'url(#mat-metal)',glass:'url(#mat-glass)',crystal:'url(#mat-crystal)',seed:'url(#mat-seed)'}[m]||color||'#e5e7eb';}
+function shade(hex,amt){if(!hex||hex[0]!=='#')return hex;let n=parseInt(hex.slice(1),16);let r=clamp((n>>16)+amt,0,255),g=clamp(((n>>8)&255)+amt,0,255),b=clamp((n&255)+amt,0,255);return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);}
+
+/* ====================================================================
+   渲染
+   ==================================================================== */
+function applyViewport(){viewport.setAttribute('transform',`translate(${view.pan.x},${view.pan.y}) scale(${view.zoom})`);zoomLabel.textContent=Math.round(view.zoom*100)+'%';}
+function renderGrid(){
+  gridLayer.innerHTML='';const span=1600,step=20;
+  for(let x=-span;x<=span;x+=step)gridLayer.appendChild(el('line',{x1:x,y1:-span,x2:x,y2:span,stroke:'#eef0f3'}));
+  for(let y=-span;y<=span;y+=step)gridLayer.appendChild(el('line',{x1:-span,y1:y,x2:span,y2:y,stroke:'#eef0f3'}));
+}
+function renderAll(){resolveJunctions();renderElements();renderProps();updateStatus();}
+function renderElements(){
+  resolveJunctions();
+  elementsLayer.innerHTML='';overlayLayer.innerHTML='';
+  design.elements.forEach(s=>renderSeg(s));
+  renderJunctionDots();
+  drawSelectionOverlay();
+}
+function renderSeg(seg){
+  const g=el('g',{class:'el-seg','data-id':seg.id});
+  const col=seg.color||design.threadColor;
+  if(seg.type==='ring')renderRing(g,seg,col);else renderBridge(g,seg,col);
+  elementsLayer.appendChild(g);
+}
+function renderRing(g,seg,col){
+  g.appendChild(el('path',{d:ringPathD(seg),fill:'transparent',stroke:'transparent','stroke-width':16}));
+  g.appendChild(el('path',{d:ringPathD(seg),fill:'none',stroke:col,'stroke-width':2.2}));
+  if(seg.split){ // 分裂环：线A 基点→分裂点(左半)，线B 分裂点→基点(右半)
+    renderSeqParts(g,seg,seg.seq,0,0.5,f=>ringPointAtF(seg,f),f=>ringOutwardAtF(seg,f),f=>ringTangentAtF(seg,f));
+    renderSeqParts(g,seg,seg.seqB||seg.seq,0.5,1,f=>ringPointAtF(seg,f),f=>ringOutwardAtF(seg,f),f=>ringTangentAtF(seg,f));
+  } else {
+    renderSeqParts(g,seg,seg.seq,0,1,f=>ringPointAtF(seg,f),f=>ringOutwardAtF(seg,f),f=>ringTangentAtF(seg,f));
+  }
+  if(view.showArrows)for(const f of [0.125,0.375,0.625,0.875]){const p=ringPointAtF(seg,f);const t=ringTangentAtF(seg,f);drawArrow(g,p.x,p.y,t.x,t.y);}
+  if(view.showNums){const p=ringPointAtF(seg,0);const o=ringOutwardAtF(seg,0);drawStepNum(g,p.x+o.x*17,p.y+o.y*17,segIdx(seg.id)+1);}
+  drawEndpoint(g,seg.baseJ);                          // 基点=起终点，可连接
+  if(seg.split)drawEndpoint(g,seg.splitJ);            // 分裂环第二节点
+}
+function drawEndpoint(g,jid){
+  const J=getJ(jid);if(!J)return;
+  const m=junctionMembers(J.id);
+  const free=!m.some(x=>x.kind==='ringBase'||x.kind==='picot');
+  const p=junctionPos(J.id);
+  g.appendChild(el('circle',{class:'endpoint'+(free?'':' linked'),cx:p.x,cy:p.y,r:4,'data-jid':J.id}));
+}
+function renderBridge(g,seg,col){
+  const lut=bridgeLUT(seg);
+  const d=`M${lut.g.A.x.toFixed(1)} ${lut.g.A.y.toFixed(1)} Q${lut.g.cx.toFixed(1)} ${lut.g.cy.toFixed(1)} ${lut.g.B.x.toFixed(1)} ${lut.g.B.y.toFixed(1)}`;
+  g.appendChild(el('path',{d,fill:'none',stroke:'transparent','stroke-width':14}));
+  g.appendChild(el('path',{d,fill:'none',stroke:col,'stroke-width':2.2,'stroke-linecap':'round'}));
+  renderSeqParts(g,seg,seg.seq,0,1,f=>bridgePointAtF(seg,f).p,f=>{const r=bridgePointAtF(seg,f);let o=norm(-r.tan.y,r.tan.x);if(o.y>0)o=norm(-o.x,-o.y);return o;},f=>bridgePointAtF(seg,f).tan);
+  drawEndpoint(g,seg.aJ);drawEndpoint(g,seg.bJ);
+  if(view.showArrows)for(const f of [0.25,0.5,0.75]){const r=bridgePointAtF(seg,f);drawArrow(g,r.p.x,r.p.y,r.tan.x,r.tan.y);}
+  if(view.showNums){const p=lut.g.A;drawStepNum(g,p.x+8,p.y-10,segIdx(seg.id)+1);}
+}
+function renderSeqParts(g,seg,list,fA,fB,pointAt,outAt,tanAt){
+  const fr=seqFracs(list,fA,fB);
+  for(const e of fr){
+    const p=e.p,f=(e.f0+e.f1)/2;
+    if(p.t==='k'){
+      if(p.n<=0)continue;
+      const pos=pointAt(f),out=outAt(f);
+      const t=el('text',{class:'knot-label',x:pos.x+out.x*13,y:pos.y+out.y*13});
+      t.textContent=p.n;g.appendChild(t); // 子段独立标数，Σ标数=元宝结总数
+    } else if(p.t==='b'){
+      drawBeadCluster(g,seg,p,f,outAt,tanAt);
+    } else if(p.t==='p'){
+      drawPicot(g,seg,p,pointAt(f),outAt(f));
+    }
+  }
+}
+function drawBeadCluster(g,seg,p,f,outAt,tanAt){
+  const pos=beadPoint(seg,p,f);
+  const fm={out:outAt(f),tan:tanAt(f)};
+  const rad=Math.max(2.2,p.size*SCALE/2*0.6); // 绘制尺寸缩小，避免盖过线段
+  const rows=clusterRows(p.count);
+  const bg=el('g',{class:'bead','data-seg':seg.id,'data-part':p.id});
+  rows.forEach((n,r)=>{
+    for(let j=0;j<n;j++){
+      const dx=(j-(n-1)/2)*rad*2.15;
+      const dy=rad+1.2+r*rad*1.85;
+      const cx=pos.x+fm.tan.x*dx+fm.out.x*dy;
+      const cy=pos.y+fm.tan.y*dx+fm.out.y*dy;
+      const one=el('g',{});one.style.color=p.color;
+      one.appendChild(el('circle',{cx,cy,r:rad,fill:beadFill(p.material,p.color),stroke:shade(p.color,-40),'stroke-width':0.6}));
+      if(p.material==='crystal'||p.material==='seed')one.appendChild(el('path',{d:`M${cx},${cy-rad} L${cx-rad*0.6},${cy+rad*0.5} L${cx+rad*0.6},${cy+rad*0.5} Z`,fill:'none',stroke:'#fff','stroke-opacity':0.4,'stroke-width':0.6}));
+      bg.appendChild(one);
+    }
+  });
+  bg.appendChild(el('circle',{cx:pos.x+fm.out.x*(rad*rows.length*1.1+rad),cy:pos.y+fm.out.y*(rad*rows.length*1.1+rad),r:rad*1.4,fill:'transparent'}));
+  const tp=beadTipPos(seg,p); // 珠簇tip：可拖拽扣合（珠子处也算一种耳）
+  bg.appendChild(el('circle',{class:'picot-tip',cx:tp.x,cy:tp.y,r:3.5,'data-seg':seg.id,'data-part':p.id}));
+  g.appendChild(bg);
+}
+function drawPicot(g,seg,p,base,out){
+  const tip=picotTip(seg,p);
+  const col=design.threadColor;
+  const tx=-out.y,ty=out.x;const w=3.2;
+  const pg=el('g',{class:'picot','data-seg':seg.id,'data-part':p.id});
+  pg.appendChild(el('path',{d:`M${(base.x+tx*w).toFixed(1)} ${(base.y+ty*w).toFixed(1)} Q${tip.x.toFixed(1)} ${tip.y.toFixed(1)} ${(base.x-tx*w).toFixed(1)} ${(base.y-ty*w).toFixed(1)}`,fill:'none',stroke:col,'stroke-width':1.6}));
+  if(p.type==='bead'&&p.bead){
+    const rad=Math.max(2.2,p.bead.size*SCALE/2*0.6);
+    pg.appendChild(el('circle',{cx:tip.x,cy:tip.y,r:rad,fill:beadFill(p.bead.material,p.bead.color),stroke:shade(p.bead.color,-40),'stroke-width':0.6}));
+  }
+  if(p.type==='join')pg.appendChild(el('circle',{cx:tip.x,cy:tip.y,r:2.4,fill:'#10b981'}));
+  pg.appendChild(el('circle',{class:'picot-tip',cx:tip.x,cy:tip.y,r:3.5,'data-seg':seg.id,'data-part':p.id}));
+  g.appendChild(pg);
+}
+function renderJunctionDots(){
+  for(const J of design.junctions){
+    const m=junctionMembers(J.id);
+    if(m.length>=2){const p=junctionPos(J.id);elementsLayer.appendChild(el('circle',{class:'join-dot',cx:p.x,cy:p.y,r:2.8}));}
+  }
+}
+function drawArrow(g,x,y,ux,uy){
+  const a=Math.atan2(uy,ux),s=4.5;
+  g.appendChild(el('path',{class:'arrow',d:`M${x} ${y} L${x-Math.cos(a-0.5)*s} ${y-Math.sin(a-0.5)*s} L${x-Math.cos(a+0.5)*s} ${y-Math.sin(a+0.5)*s} Z`}));
+}
+function drawStepNum(g,x,y,n){
+  g.appendChild(el('circle',{cx:x,cy:y,r:6.5,fill:'#fff',stroke:'#7c3aed','stroke-width':1}));
+  const t=el('text',{class:'step-num',x,y});t.textContent=n;g.appendChild(t);
+}
+function drawSelectionOverlay(){
+  for(const s of state.selIds){
+    if(s.kind==='seg'){
+      const seg=getSeg(s.segId);if(!seg)continue;
+      if(seg.type==='ring'){
+        overlayLayer.appendChild(el('path',{class:'sel-outline',d:ringPathD(seg)}));
+        // 旋转/扁度直接编辑手柄（周长不变；放短轴端避开长轴上的节点）
+        const bot=ringPointAtF(seg,0.25),bo=ringOutwardAtF(seg,0.25);
+        overlayLayer.appendChild(el('circle',{class:'rot-handle',cx:bot.x+bo.x*26,cy:bot.y+bo.y*26,r:5.5,'data-id':seg.id}));
+        const top=ringPointAtF(seg,0.75),to=ringOutwardAtF(seg,0.75);
+        overlayLayer.appendChild(el('circle',{class:'asp-handle',cx:top.x+to.x*26,cy:top.y+to.y*26,r:5.5,'data-id':seg.id}));
+      } else{const g=bridgeGeom(seg);overlayLayer.appendChild(el('path',{class:'sel-outline',d:`M${g.A.x} ${g.A.y} Q${g.cx} ${g.cy} ${g.B.x} ${g.B.y}`}));}
+    } else if(s.kind==='bead'||s.kind==='picot'){
+      const f=findPart(s.partId);if(!f)continue;
+      if(s.kind==='bead'){
+        const pr=partRange(f.seg,f.part);
+        const fr=seqFracs(pr.list,pr.fA,pr.fB);const e=fr.find(x=>x.p===f.part);
+        const pos=beadPoint(f.seg,f.part,e?(e.f0+e.f1)/2:0);
+        const rad=Math.max(2.2,f.part.size*SCALE/2*0.6);
+        overlayLayer.appendChild(el('circle',{class:'sel-outline',cx:pos.x,cy:pos.y,r:rad*Math.sqrt(f.part.count)+7}));
+      } else {
+        const tip=picotTip(f.seg,f.part);
+        overlayLayer.appendChild(el('circle',{class:'sel-outline',cx:tip.x,cy:tip.y,r:7}));
+      }
+    }
+  }
+}
+function segSamples(s){ // 构件折线采样（相交检测用，粗粒度不过严）
+  const pts=[];
+  if(s.type==='ring'){for(let i=0;i<16;i++)pts.push(ringPointAtF(s,i/16));}
+  else{const g=bridgeGeom(s);for(let i=0;i<=12;i++)pts.push(bezAt(g,i/12));}
+  return pts;
+}
+function segsIntersect(a,b){
+  const inter=(p1,p2,p3,p4)=>{
+    const d1=(p2.x-p1.x)*(p3.y-p1.y)-(p2.y-p1.y)*(p3.x-p1.x);
+    const d2=(p2.x-p1.x)*(p4.y-p1.y)-(p2.y-p1.y)*(p4.x-p1.x);
+    const d3=(p4.x-p3.x)*(p1.y-p3.y)-(p4.y-p3.y)*(p1.x-p3.x);
+    const d4=(p4.x-p3.x)*(p2.y-p3.y)-(p4.y-p3.y)*(p2.x-p3.x);
+    return ((d1>0&&d2<0)||(d1<0&&d2>0))&&((d3>0&&d4<0)||(d3<0&&d4>0));
+  };
+  for(let i=0;i<a.length-1;i++)for(let j=0;j<b.length-1;j++)if(inter(a[i],a[i+1],b[j],b[j+1]))return true;
+  return false;
+}
+function collectWarnings(){
+  const warns=[];
+  for(const s of design.elements){
+    if(s.type==='bridge'){
+      const g=bridgeGeom(s);
+      if(g.d>g.L+2)warns.push(nameOfSeg(s.id)+` 线长不足(距${(g.d/SCALE).toFixed(1)}>线长${(g.L/SCALE).toFixed(1)}mm)`);
+      eachPart(s,p=>{if(p.t==='p'&&p.toJ){
+        const pr=partRange(s,p);const fr=seqFracs(pr.list,pr.fA,pr.fB);const e=fr.find(x=>x.p===p);
+        const base=bridgePointAtF(s,(e.f0+e.f1)/2).p;
+        const tip=junctionPos(p.toJ);
+        if(dist(base.x,base.y,tip.x,tip.y)>p.units*knotLenMm()*SCALE*1.6)warns.push(nameOfSeg(s.id)+' 接耳拉伸');
+      }});
+    } else {
+      eachPart(s,p=>{if(p.t==='p'&&p.toJ){
+        const t=picotNatTip(s,p);
+        const tip=junctionPos(p.toJ);
+        if(dist(t.x,t.y,tip.x,tip.y)>p.units*knotLenMm()*SCALE*1.6)warns.push(nameOfSeg(s.id)+' 接耳拉伸');
+      }});
+    }
+  }
+  // 构件相交检测（共享节点的相接构件跳过；提示绕节点旋转避开）
+  const segJs=s=>{const set=new Set();if(s.type==='ring'){set.add(s.baseJ);if(s.splitJ)set.add(s.splitJ);}else{set.add(s.aJ);set.add(s.bJ);}return set;};
+  outer:
+  for(let i=0;i<design.elements.length;i++)for(let j=i+1;j<design.elements.length;j++){
+    const A=design.elements[i],B=design.elements[j];
+    const ja=segJs(A),jb=segJs(B);let share=false;
+    for(const id of ja)if(jb.has(id)){share=true;break;}
+    if(share)continue;
+    if(segsIntersect(segSamples(A),segSamples(B))){warns.push('构件相交：'+nameOfSeg(A.id)+'×'+nameOfSeg(B.id)+'（可绕节点旋转避开）');break outer;}
+  }
+  return warns;
+}
+function updateStatus(){
+  let knots=0,beads=0,picots=0;
+  for(const s of design.elements)eachPart(s,p=>{
+    if(p.t==='k')knots+=p.n;else if(p.t==='b')beads+=p.count;else picots++;
+  });
+  const warns=collectWarnings();
+  statusBar.textContent=`段 ${design.elements.length} · 结 ${knots} · 珠 ${beads} · 耳 ${picots} · 组 ${design.groups.length}${view.tool?' · 【'+(view.tool==='bead'?'加珠模式':'加耳模式')+' 点击结位插入，Esc退出】':''}${warns.length?' · ⚠ '+warns.slice(0,2).join('；'):''}`;
+}
+
+/* ====================================================================
+   历史
+   ==================================================================== */
+function snapshot(){return JSON.stringify({elements:design.elements,junctions:design.junctions,groups:design.groups});}
+function pushHistory(){state.history=state.history.slice(0,state.histIdx+1);state.history.push(snapshot());if(state.history.length>80)state.history.shift();else state.histIdx++;}
+function restore(json){const d=JSON.parse(json);design.elements=d.elements;design.junctions=d.junctions||[];design.groups=d.groups||[];state.selIds=[];}
+function undo(){if(state.histIdx<=0)return;state.histIdx--;restore(state.history[state.histIdx]);renderAll();}
+function redo(){if(state.histIdx>=state.history.length-1)return;state.histIdx++;restore(state.history[state.histIdx]);renderAll();}
+
+function clientToWorld(cx,cy){const r=svg.getBoundingClientRect();return{x:(cx-r.left-view.pan.x)/view.zoom,y:(cy-r.top-view.pan.y)/view.zoom};}
+function nearestSegFrac(w){ // 点击 → 最近线段 + 弧长比例
+  let best=null;
+  for(const s of design.elements){
+    let p;
+    if(s.type==='ring'){
+      const {a}=ringAxesPx(s);
+      const dd=dist(w.x,w.y,s.cx,s.cy);
+      if(dd>a+30||dd<a-30)continue;
+      const phi=Math.atan2(w.y-s.cy,w.x-s.cx)-rotRad(s); // f=0 在长轴右端（新基准）
+      let f=(phi/(2*Math.PI))%1;if(f<0)f+=1;
+      p=ringPointAtF(s,f);
+      if(dist(p.x,p.y,w.x,w.y)>26)continue;
+      best=best&&best.dd<=dist(p.x,p.y,w.x,w.y)?best:{seg:s,frac:f,dd:dist(p.x,p.y,w.x,w.y)};
+    } else {
+      const lut=bridgeLUT(s);
+      if(distToQuad(w,lut.g)>20)continue;
+      let bf=0,bd=1e9;
+      for(let i=0;i<=24;i++){const q=bezAt(lut.g,i/24);const d=dist(q.x,q.y,w.x,w.y);if(d<bd){bd=d;bf=i/24;}}
+      const t=bridgeFToT(lut,bf);
+      best=best&&best.dd<=bd?best:{seg:s,frac:bf,dd:bd};
+    }
+  }
+  return best;
+}
+function distToQuad(w,g){
+  let bd=1e9;
+  for(let i=0;i<=24;i++){const q=bezAt(g,i/24);bd=Math.min(bd,dist(q.x,q.y,w.x,w.y));}
+  return bd;
+}
+
+/* ====================================================================
+   插入：珠簇 / 接耳（打断线段·加法式占用·结数守恒）
+   ==================================================================== */
+function insertBeadAt(seg,frac){
+  const pr=seg.split&&frac>=0.5?{list:seg.seqB,fA:0.5,fB:1}:partRange(seg,seg.seq[0]);
+  const fr=seqFracs(pr.list,pr.fA,pr.fB);
+  let idx=fr.findIndex(x=>frac>=x.f0&&frac<x.f1);if(idx<0)idx=fr.length-1;
+  let e=fr[idx];
+  if(e.p.t!=='k'){idx=fr.findIndex(x=>x.p.t==='k'&&x.p.n>0);if(idx<0){alert('没有可插入的结段');return;}e=fr[idx];}
+  const p=e.p;
+  const count=clamp(Math.floor(+defaults.beadQty||1),1,12);
+  const buUnits=Math.max(1,Math.round(count*defaults.beadSize/knotLenMm())); // 珠簇额外占用的线长单位
+  const i=clamp(Math.round((frac-e.f0)/(e.f1-e.f0)*p.n),0,p.n);
+  const bead={t:'b',id:uid('b'),size:defaults.beadSize,material:defaults.beadMaterial,color:defaults.beadColor,count,bu:buUnits};
+  pr.list.splice(idx,1,{t:'k',id:uid('k'),n:i},bead,{t:'k',id:uid('k'),n:p.n-i}); // 两段标数之和=原子段结数
+  normalizeList(pr.list);
+}
+function insertPicotAt(seg,frac){
+  const pr=seg.split&&frac>=0.5?{list:seg.seqB,fA:0.5,fB:1}:partRange(seg,seg.seq[0]);
+  const fr=seqFracs(pr.list,pr.fA,pr.fB);
+  let idx=fr.findIndex(x=>frac>=x.f0&&frac<x.f1);if(idx<0)idx=fr.length-1;
+  let e=fr[idx];
+  if(e.p.t!=='k'){idx=fr.findIndex(x=>x.p.t==='k'&&x.p.n>0);if(idx<0){alert('没有可插入的结段');return;}e=fr[idx];}
+  const p=e.p;
+  const units=clamp(Math.floor(+defaults.picotUnits||1),1,6);
+  const i=clamp(Math.round((frac-e.f0)/(e.f1-e.f0)*p.n),0,p.n);
+  const picot={t:'p',id:uid('p'),units,type:defaults.picotType,bead:defaults.picotType==='bead'?{size:defaults.beadSize,material:defaults.beadMaterial,color:defaults.beadColor}:null,toJ:null};
+  pr.list.splice(idx,1,{t:'k',id:uid('k'),n:i},picot,{t:'k',id:uid('k'),n:p.n-i}); // 结数不减少，接耳额外占用
+  normalizeList(pr.list);
+}
+function removePart(seg,part){
+  const list=(seg.seqB&&seg.seqB.includes(part))?seg.seqB:seg.seq;
+  const i=list.indexOf(part);if(i<0)return;
+  list.splice(i,1);
+  normalizeList(list); // 相邻子段自动合并=回收线长
+  cleanupJunctions();
+}
+
+/* ====================================================================
+   创建 / 模板
+   ==================================================================== */
+function createRing(x,y,knots,split){
+  const r={id:uid('r'),type:'ring',cx:x,cy:y,aspect:0.8,rot:0,color:null,seq:[{t:'k',id:uid('k'),n:split?Math.ceil(knots/2):knots}]};
+  if(split){r.split=true;r.seqB=[{t:'k',id:uid('k'),n:Math.floor(knots/2)}];} // 两根线各编半环
+  r.baseJ=newJunction(ringPointAtF(r,0).x,ringPointAtF(r,0).y).id;   // 起终点=基点(正下)
+  if(split)r.splitJ=newJunction(ringPointAtF(r,0.5).x,ringPointAtF(r,0.5).y).id; // 分裂点(正上)
+  return r;
+}
+function createBridge(ax,ay,bx,by,knots){
+  const b={id:uid('b'),type:'bridge',color:null,seq:[{t:'k',id:uid('k'),n:knots}]};
+  b.aJ=newJunction(ax,ay).id;b.bJ=newJunction(bx,by).id;
+  return b;
+}
+function addSegment(type){
+  const r=canvasWrap.getBoundingClientRect();
+  const w=clientToWorld(r.left+r.width/2,r.top+r.height/2);
+  const jx=(Math.random()-0.5)*60,jy=(Math.random()-0.5)*40;
+  const seg=type==='ring'?createRing(w.x+jx,w.y+jy,16)
+    :type==='splitring'?createRing(w.x+jx,w.y+jy,16,true)
+    :createBridge(w.x-50+jx,w.y+jy,w.x+50+jx,w.y+jy,8);
+  design.elements.push(seg);
+  state.selIds=[{kind:'seg',segId:seg.id}];
+  pushHistory();renderAll();
+}
+function loadTemplate(tpl){
+  design.elements=[];design.junctions=[];design.groups=[];state.selIds=[];state.history=[];state.histIdx=-1;
+  view.pan={x:0,y:0};view.zoom=1;applyViewport();
+  const r=svg.getBoundingClientRect();
+  const cx=r.width/2||600,cy=r.height/2||400;
+  if(tpl==='ring'){
+    design.elements.push(createRing(cx,cy,24));
+  } else if(tpl==='bracelet'){
+    // 连续线手链：环-桥-环-桥-环-桥，末桥留自由端供阵列续接
+    const ids=[];
+    const pitch=132,ox=cx-pitch;
+    const rings=[];
+    for(let m=0;m<3;m++){
+      const rg=createRing(ox+m*pitch,cy,10);
+      rings.push(rg);design.elements.push(rg);ids.push(rg.id);
+    }
+    for(let m=0;m<3;m++){
+      const b=createBridge(0,0,0,0,6);
+      b.aJ=rings[m].baseJ;
+      b.bJ=m<2?rings[m+1].baseJ:newJunction(ox+3*pitch,cy+ringAxesPx(rings[0]).b).id; // 末桥自由端=出线节点
+      design.elements.push(b);ids.push(b.id);
+    }
+    resolveJunctions();
+    cleanupJunctions();                     // 清掉桥被替换后遗留的孤儿连接点
+    design.groups.push({id:uid('g'),members:ids.slice()});
+  } else if(tpl==='earring'){
+    const ring=createRing(cx,cy-64,12);
+    const picot={t:'p',id:uid('p'),units:1,type:'empty',bead:null,toJ:null};
+    ring.seq.splice(1,0,{t:'k',id:uid('k'),n:5},picot,{t:'k',id:uid('k'),n:6});
+    ring.seq[0].n=1;normalizeList(ring.seq); // 加法式：1+5+6=12结，接耳为额外占用
+    const b=createBridge(0,0,0,0,6);
+    b.aJ=ring.baseJ;
+    resolveJunctions();
+    const Jb=getJ(b.bJ);const rp=ringPointAtF(ring,0);
+    Jb.x=rp.x;Jb.y=rp.y+64;
+    b.seq=[{t:'k',id:uid('k'),n:3},{t:'b',id:uid('b2'),size:6,material:'crystal',color:'#7c3aed',count:1,bu:3}];
+    design.elements.push(ring,b);
+    cleanupJunctions();                     // 清理桥自身被替换掉的孤儿连接点
+  }
+  pushHistory();renderAll();
+}
+function clearAll(){if(design.elements.length===0||confirm('确定清空画布？')){design.elements=[];design.junctions=[];design.groups=[];state.selIds=[];pushHistory();renderAll();}}
+
+/* ====================================================================
+   编组（克隆保留连接/结数/珠簇/接耳结构）
+   ==================================================================== */
+function cloneSegs(ids,dx,dy){
+  const map={},jmap={},copies=[];
+  const jids=new Set();
+  for(const id of ids){
+    const s=getSeg(id);if(!s)continue;
+    if(s.type==='ring'){jids.add(s.baseJ);if(s.splitJ)jids.add(s.splitJ);}
+    else{jids.add(s.aJ);jids.add(s.bJ);}
+    eachPart(s,p=>{if((p.t==='p'||p.t==='b')&&p.toJ)jids.add(p.toJ);});
+  }
+  for(const jid of jids){
+    const J=getJ(jid);if(!J)continue;
+    const nj=newJunction(J.x+dx,J.y+dy);jmap[jid]=nj.id;
+  }
+  for(const id of ids){
+    const s=getSeg(id);if(!s)continue;
+    const c=JSON.parse(JSON.stringify(s));
+    c.id=uid(s.type==='ring'?'r':'b');
+    eachPart(c,p=>{p.id=uid(p.t);if(p.t==='p'&&p.bead)p.bead=Object.assign({},p.bead);});
+    if(c.type==='ring'){c.cx+=dx;c.cy+=dy;c.baseJ=jmap[c.baseJ]||c.baseJ;if(c.splitJ)c.splitJ=jmap[c.splitJ]||c.splitJ;}
+    else{c.aJ=jmap[c.aJ]||c.aJ;c.bJ=jmap[c.bJ]||c.bJ;}
+    eachPart(c,p=>{if((p.t==='p'||p.t==='b')&&p.toJ)p.toJ=jmap[p.toJ]||null;});
+    map[id]=c.id;copies.push(c);
+  }
+  return {copies,jmap};
+}
+function makeGroup(){
+  const segs=selSegs();if(!segs.length){alert('请先框选或点选元素');return;}
+  design.groups.push({id:uid('g'),members:segs.map(s=>s.id)});
+  pushHistory();renderAll();
+}
+function copyGroup(){
+  const segs=selSegs();if(!segs.length){alert('请先选中要复制的元素');return;}
+  const ids=segs.map(s=>s.id);
+  const g=design.groups.find(g=>ids.every(id=>g.members.includes(id)));
+  const {copies}=cloneSegs(g?g.members:ids,26,26);
+  design.elements.push(...copies);
+  state.selIds=copies.map(c=>({kind:'seg',segId:c.id}));
+  pushHistory();renderAll();
+}
+function groupBBox(ids){
+  let minX=Infinity,maxX=-Infinity;
+  for(const id of ids){
+    const s=getSeg(id);if(!s)continue;
+    if(s.type==='ring'){const{a}=ringAxesPx(s);minX=Math.min(minX,s.cx-a-10);maxX=Math.max(maxX,s.cx+a+10);}
+    else{const g=bridgeGeom(s);minX=Math.min(minX,g.A.x,g.B.x);maxX=Math.max(maxX,g.A.x,g.B.x);}
+  }
+  return {minX,maxX};
+}
+function groupAnchor(ids){ // 组的入线节点(最左)与出线节点(最右自由点，退化取最右)
+  const jset=new Set();
+  for(const id of ids){
+    const s=getSeg(id);if(!s)continue;
+    if(s.type==='ring'){jset.add(s.baseJ);if(s.splitJ)jset.add(s.splitJ);}
+    else{jset.add(s.aJ);jset.add(s.bJ);}
+    eachPart(s,p=>{if((p.t==='p'||p.t==='b')&&p.toJ)jset.add(p.toJ);});
+  }
+  let entry=null,exit=null;
+  for(const jid of jset){
+    if(!getJ(jid))continue;
+    const p=junctionPos(jid);
+    if(!entry||p.x<junctionPos(entry).x-0.01)entry=jid;
+    if(junctionMembers(jid).length===1&&(!exit||p.x>junctionPos(exit).x+0.01))exit=jid;
+  }
+  if(!exit)exit=entry;
+  return {entry,exit};
+}
+function arrayGroup(){ // 阵列：副本入线节点与上一单元出线节点扣合，连续相接
+  const segs=selSegs();if(!segs.length){alert('请先选中花片单元');return;}
+  const ids=segs.map(s=>s.id);
+  const g=design.groups.find(g=>ids.every(id=>g.members.includes(id)));
+  const srcIds=g?g.members:ids;
+  const {entry,exit}=groupAnchor(srcIds);
+  const ep=junctionPos(entry),xp=junctionPos(exit);
+  const n=clamp(Math.floor(+document.getElementById('arrayCount').value||3),2,12);
+  const stepX=xp.x-ep.x,stepY=xp.y-ep.y;
+  if(Math.abs(stepX)<1&&Math.abs(stepY)<1){ // 无出入口(如纯环) → 退化为平移摆放
+    const bb=groupBBox(srcIds);
+    const step=Math.max(bb.maxX-bb.minX,40)+22;
+    for(let k=1;k<n;k++)design.elements.push(...cloneSegs(srcIds,step*k,0).copies);
+  } else {
+    let prevExit=exit;
+    for(let k=1;k<n;k++){
+      const {copies,jmap}=cloneSegs(srcIds,stepX*k,stepY*k);
+      design.elements.push(...copies);
+      const cEntry=jmap[entry];
+      if(cEntry&&cEntry!==prevExit){mergeJunctions(cEntry,prevExit);} // 入线扣合到上一单元出线
+      prevExit=jmap[exit]||prevExit;
+    }
+  }
+  pushHistory();renderAll();
+}
+function ungroup(){
+  const ids=selSegs().map(s=>s.id);if(!ids.length){alert('请先选中组内元素');return;}
+  design.groups=design.groups.filter(g=>!g.members.some(m=>ids.includes(m)));
+  pushHistory();renderAll();
+}
+function deleteSegs(idSet){
+  design.elements=design.elements.filter(s=>!idSet.has(s.id));
+  design.groups.forEach(g=>g.members=g.members.filter(m=>!idSet.has(m)));
+  design.groups=design.groups.filter(g=>g.members.length>0);
+  cleanupJunctions();
+}
+
+/* ====================================================================
+   交互
+   ==================================================================== */
+function setSel(entry,shift){
+  const key=e=>e.kind+'|'+(e.segId||'')+'|'+(e.partId||e.id||'');
+  if(shift){
+    const i=state.selIds.findIndex(e=>key(e)===key(entry));
+    if(i>=0)state.selIds.splice(i,1);else state.selIds.push(entry);
+  } else state.selIds=[entry];
+}
+svg.addEventListener('mousedown',e=>{
+  if(e.button===1||view.spaceDown){state.drag={mode:'pan',sx:e.clientX,sy:e.clientY,px:view.pan.x,py:view.pan.y};svg.classList.add('panning');return;}
+  if(e.button!==0)return;
+  const t=e.target;
+  const w=clientToWorld(e.clientX,e.clientY);
+  /* 工具模式：点结位插入 */
+  if(view.tool==='bead'||view.tool==='picot'){
+    const hit=nearestSegFrac(w);
+    if(!hit){statusBar.textContent='请点击线段上的结位（Esc退出）';return;}
+    if(view.tool==='bead')insertBeadAt(hit.seg,hit.frac);else insertPicotAt(hit.seg,hit.frac);
+    pushHistory();renderAll();return;
+  }
+  const rh=t.closest?t.closest('.rot-handle'):null;
+  const ah=t.closest?t.closest('.asp-handle'):null;
+  if(rh){ // 环旋转手柄（周长锁定；已连接环=绕节点公转）
+    const seg=getSeg(rh.getAttribute('data-id'));if(!seg)return;
+    if(!state.selIds.some(x=>x.kind==='seg'&&x.segId===seg.id))setSel({kind:'seg',segId:seg.id},false);
+    const pv=ringPivot(seg);
+    if(pv){
+      const pp=ringPointAtF(seg,pv===seg.baseJ?0:0.5);
+      state.drag={mode:'rorbit',segId:seg.id,pivotId:pv,pv:pp,startAngle:Math.atan2(w.y-pp.y,w.x-pp.x),
+        startRot:seg.rot||0,startC:{x:seg.cx,y:seg.cy}};
+    } else state.drag={mode:'rrot',segId:seg.id,startAngle:Math.atan2(w.y-seg.cy,w.x-seg.cx),startRot:seg.rot||0};
+    return;
+  }
+  if(ah){ // 环扁度手柄（周长锁定）
+    const seg=getSeg(ah.getAttribute('data-id'));if(!seg)return;
+    if(!state.selIds.some(x=>x.kind==='seg'&&x.segId===seg.id))setSel({kind:'seg',segId:seg.id},false);
+    state.drag={mode:'rasp',segId:seg.id,startDist:dist(w.x,w.y,seg.cx,seg.cy)||1,startAspect:seg.aspect||0.8};
+    return;
+  }
+  const tipG=t.closest?t.closest('.picot-tip'):null;
+  const endG=t.closest?t.closest('.endpoint'):null;
+  const beadG=t.closest?t.closest('.bead'):null;
+  const picotG=t.closest&&!tipG?t.closest('.picot'):null;
+  const segG=t.closest?t.closest('.el-seg'):null;
+  if(tipG){ // 接耳末端拖拽 → 耳耳扣合/断开
+    state.drag={mode:'ptip',segId:tipG.getAttribute('data-seg'),partId:tipG.getAttribute('data-part'),moved:false};
+    return;
+  }
+  if(endG){ // 桥自由端拖拽 → 吸附连接
+    state.drag={mode:'jend',jid:endG.getAttribute('data-jid'),moved:false};
+    return;
+  }
+  if(beadG){setSel({kind:'bead',segId:beadG.getAttribute('data-seg'),partId:beadG.getAttribute('data-part')},e.shiftKey);renderAll();return;}
+  if(picotG){setSel({kind:'picot',segId:picotG.getAttribute('data-seg'),partId:picotG.getAttribute('data-part')},e.shiftKey);renderAll();return;}
+  if(segG){
+    const sid=segG.getAttribute('data-id');
+    const seg=getSeg(sid);
+    const already=state.selIds.some(x=>x.kind==='seg'&&x.segId===sid);
+    if(!already)setSel({kind:'seg',segId:sid},e.shiftKey); // 已选中则保持多选，支持组整体拖动
+    renderAll();
+    if(seg.type==='ring'){
+      const pv=state.selIds.length===1?ringPivot(seg):null;
+      if(pv){ // 已连接环：不能平移，拖动=绕连接节点公转（焊接保持）
+        const pp=ringPointAtF(seg,pv===seg.baseJ?0:0.5);
+        state.drag={mode:'rorbit',segId:seg.id,pivotId:pv,pv:pp,startAngle:Math.atan2(w.y-pp.y,w.x-pp.x),
+          startRot:seg.rot||0,startC:{x:seg.cx,y:seg.cy},moved:false};
+        return;
+      }
+      // 自由环（或组）：任意处拖=移动；旋转/扁度用选中后的专用手柄
+      const mv={mode:'move',startW:w,moved:false,single:state.selIds.length===1,
+        origs:selSegs().map(s=>({seg:s,snap:JSON.parse(JSON.stringify(s))})),freeJPos:{}};
+      for(const s of selSegs())if(s.type==='bridge'){
+        for(const jid of (s.aJ===s.bJ?[s.aJ]:[s.aJ,s.bJ]))
+          if(getJ(jid)&&junctionMembers(jid).length===1){const jp=junctionPos(jid);mv.freeJPos[jid]={x:jp.x,y:jp.y};}
+      }
+      state.drag=mv;
+    } else {
+      const freeJs=[];
+      if(getJ(seg.aJ)&&junctionMembers(seg.aJ).length===1)freeJs.push(seg.aJ);
+      if(getJ(seg.bJ)&&seg.aJ!==seg.bJ&&junctionMembers(seg.bJ).length===1)freeJs.push(seg.bJ);
+      if(!freeJs.length)return; // 两端均已连接：桥不可整体拖动
+      state.drag={mode:'bmove',startW:w,moved:false,segId:sid,freeJs,lastW:w};
+    }
+    return;
+  }
+  const wr=canvasWrap.getBoundingClientRect();
+  state.drag={mode:'rubber',sx:e.clientX,sy:e.clientY,wr};
+});
+document.addEventListener('mousemove',e=>{
+  const d=state.drag;
+  if(!d){ // 无拖拽：加珠/加耳工具下显示插入位置预览（动态标数）
+    if(view.tool==='bead'||view.tool==='picot')drawInsertPreview(e);
+    return;
+  }
+  if(d.mode==='pan'){view.pan.x=d.px+(e.clientX-d.sx);view.pan.y=d.py+(e.clientY-d.sy);applyViewport();return;}
+  if(d.mode==='rubber'){
+    const x=Math.min(d.sx,e.clientX)-d.wr.left,y=Math.min(d.sy,e.clientY)-d.wr.top;
+    rubber.style.display='block';rubber.style.left=x+'px';rubber.style.top=y+'px';
+    rubber.style.width=Math.abs(e.clientX-d.sx)+'px';rubber.style.height=Math.abs(e.clientY-d.sy)+'px';
+    return;
+  }
+  const w=clientToWorld(e.clientX,e.clientY);
+  if(d.mode==='move'){
+    const dx=w.x-d.startW.x,dy=w.y-d.startW.y;
+    if(Math.abs(dx)+Math.abs(dy)>2)d.moved=true;
+    for(const o of d.origs){
+      const s=o.seg,orig=o.snap;
+      if(s.type==='ring'){s.cx=orig.cx+dx;s.cy=orig.cy+dy;}
+    }
+    for(const o of d.origs){ // 组内桥的「仅含自身」自由端随组平移
+      const s=o.seg;
+      if(s.type!=='bridge')continue;
+      for(const jid of (s.aJ===s.bJ?[s.aJ]:[s.aJ,s.bJ])){
+        const oj=d.freeJPos&&d.freeJPos[jid];
+        if(oj){const J=getJ(jid);if(J){J.x=oj.x+dx;J.y=oj.y+dy;}}
+      }
+    }
+    if(d.single&&d.origs.length===1&&d.origs[0].seg.type==='ring')ringSnapUnlink(d.origs[0].seg);
+    renderElements();
+  } else if(d.mode==='rrot'){
+    const seg=getSeg(d.segId);if(!seg)return;
+    const ang=Math.atan2(w.y-seg.cy,w.x-seg.cx);
+    seg.rot=d.startRot+(ang-d.startAngle)*180/Math.PI; // 360°自由旋转，周长不变
+    renderElements();
+  } else if(d.mode==='rorbit'){ // 已连接环：绕连接节点公转（焊点保持，桥不被拉伸）
+    const seg=getSeg(d.segId);if(!seg)return;
+    const ang=Math.atan2(w.y-d.pv.y,w.x-d.pv.x);
+    const delta=ang-d.startAngle;
+    const ca=Math.cos(delta),sa=Math.sin(delta);
+    const dx0=d.startC.x-d.pv.x,dy0=d.startC.y-d.pv.y;
+    seg.cx=d.pv.x+dx0*ca-dy0*sa;
+    seg.cy=d.pv.y+dx0*sa+dy0*ca;
+    seg.rot=d.startRot+delta*180/Math.PI;
+    if(Math.abs(delta)>0.02)d.moved=true;
+    renderElements();
+  } else if(d.mode==='rasp'){
+    const seg=getSeg(d.segId);if(!seg)return;
+    withPinnedBase(seg,()=>{seg.aspect=clamp(d.startAspect*(dist(w.x,w.y,seg.cx,seg.cy)/d.startDist),0.4,1);}); // 仅调扁度，周长不变，焊点保持
+    renderElements();
+  } else if(d.mode==='bmove'){
+    const dx=w.x-d.startW.x,dy=w.y-d.startW.y;
+    if(Math.abs(dx)+Math.abs(dy)>2)d.moved=true;
+    if(d.lastW){const ddx=w.x-d.lastW.x,ddy=w.y-d.lastW.y;
+      const seg=getSeg(d.segId);
+      for(const jid of d.freeJs){const J=getJ(jid);if(!J)continue;
+        J.x+=ddx;J.y+=ddy;
+        if(seg)clampBridgeEnd(seg,jid,J); // 端点拖拽不可超过线长
+      }
+    }
+    d.lastW=w;
+    renderElements();
+  } else if(d.mode==='jend'){
+    const J=getJ(d.jid);if(!J)return;
+    d.moved=true;
+    const rb=design.elements.find(s=>s.type==='ring'&&(s.baseJ===J.id||s.splitJ===J.id)&&junctionMembers(J.id).length===1);
+    if(rb){ // 环节点抓手：按住节点拖动整环，精准靠近目标连接
+      rb.cx+=w.x-J.x;rb.cy+=w.y-J.y;
+    } else {
+      J.x=w.x;J.y=w.y;
+      const owner=design.elements.find(s=>s.type==='bridge'&&(s.aJ===J.id||s.bJ===J.id));
+      if(owner&&junctionMembers(J.id).length===1)clampBridgeEnd(owner,J.id,J);
+    }
+    clearSnapPreview();
+    const jp=junctionPos(J.id);
+    for(const T of design.junctions){
+      if(T.id===J.id)continue;
+      const tp=junctionPos(T.id);
+      if(dist(jp.x,jp.y,tp.x,tp.y)<SNAP_DIST){
+        if(mergeJunctions(J.id,T.id)){d.jid=T.id;overlayLayer.appendChild(el('circle',{class:'snap-marker',cx:tp.x,cy:tp.y,r:8}));break;}
+      }
+    }
+    resolveJunctions();renderElements();
+  } else if(d.mode==='ptip'){
+    const f=findPart(d.partId);if(!f)return;
+    if(!d.moved&&dist(w.x,w.y,partTip(f.seg,f.part).x,partTip(f.seg,f.part).y)>4){
+      d.moved=true;
+      if(f.part.toJ){f.part.toJ=null;cleanupJunctions();}
+    }
+    if(!d.moved)return;
+    clearSnapPreview();
+    const pr0=partRange(f.seg,f.part);
+    const fr0=seqFracs(pr0.list,pr0.fA,pr0.fB);
+    const e0=fr0.find(x=>x.p===f.part);
+    const base=e0?beadPoint(f.seg,f.part,(e0.f0+e0.f1)/2):null;
+    const reach=f.part.t==='p'?f.part.units*knotLenMm()*SCALE*1.35:beadExtPx(f.part)+20; // 可达半径
+    { // 耳-耳 / 珠-耳 / 珠-珠 两两扣合：仅扫其他自由tip；耳不可接环/桥节点
+      const others=[];
+      for(const s2 of design.elements){
+        const lists=s2.seqB?[s2.seq,s2.seqB]:[s2.seq];
+        for(const L2 of lists)for(const p2 of L2){
+          if((p2.t!=='p'&&p2.t!=='b')||p2.id===d.partId||p2.toJ)continue;
+          others.push({s2,p2});
+        }
+      }
+      for(const o of others){
+        const tp=partTip(o.s2,o.p2);
+        if(dist(w.x,w.y,tp.x,tp.y)<SNAP_DIST&&(!base||dist(base.x,base.y,tp.x,tp.y)<=reach)){
+          const J=newJunction(tp.x,tp.y);
+          o.p2.toJ=J.id;f.part.toJ=J.id;
+          overlayLayer.appendChild(el('circle',{class:'snap-marker',cx:tp.x,cy:tp.y,r:8}));
+          d.snapped=true;break;
+        }
+      }
+    }
+    if(!d.snapped)f.part.toJ=null;
+    resolveJunctions();renderElements();
+  }
+});
+function ringSnapUnlink(ring){
+  const bp=ringPointAtF(ring,0);
+  const J=getJ(ring.baseJ);
+  if(J){
+    const others=junctionMembers(J.id).filter(m=>!(m.kind==='ringBase'&&m.seg.id===ring.id));
+    if(others.length){
+      const jp=junctionPos(J.id);
+      if(dist(bp.x,bp.y,jp.x,jp.y)>UNLINK_DIST)unlinkJunction(J.id,ring);
+    }
+  }
+  for(const T of design.junctions){
+    if(T.id===ring.baseJ)continue;
+    const tp=junctionPos(T.id);
+    const dd=dist(bp.x,bp.y,tp.x,tp.y);
+    if(dd<SNAP_DIST){
+      const cur=ringPointAtF(ring,0);
+      const sc=ring.cx,sy=ring.cy;
+      ring.cx+=tp.x-cur.x;ring.cy+=tp.y-cur.y;
+      if(mergeJunctions(ring.baseJ,T.id))ring.baseJ=T.id;
+      else{ring.cx=sc;ring.cy=sy;} // 目标是耳/珠tip等非法合并 → 回退
+      break;
+    }
+  }
+}
+document.addEventListener('mouseup',e=>{
+  const d=state.drag;if(!d)return;
+  if(d.mode==='rubber'){
+    rubber.style.display='none';
+    const w1=clientToWorld(d.sx,d.sy),w2=clientToWorld(e.clientX,e.clientY);
+    applyRubber(w1,w2);
+  } else if((d.mode==='move'&&d.moved)||d.mode==='rrot'||d.mode==='rasp'||(d.mode==='rorbit'&&d.moved)||(d.mode==='jend'&&d.moved)||(d.mode==='bmove'&&d.moved)||(d.mode==='ptip'&&d.moved)){
+    cleanupJunctions();pushHistory();renderAll();
+  }
+  clearSnapPreview();
+  state.drag=null;svg.classList.remove('panning');
+});
+function applyRubber(w1,w2){
+  const rx=Math.min(w1.x,w2.x),ry=Math.min(w1.y,w2.y),rw=Math.abs(w2.x-w1.x),rh=Math.abs(w2.y-w1.y);
+  const hits=[];
+  if(rw>5&&rh>5){
+    for(const s of design.elements){
+      let px,py;
+      if(s.type==='ring'){px=s.cx;py=s.cy;}
+      else{const g=bridgeGeom(s);px=(g.A.x+g.B.x)/2;py=(g.A.y+g.B.y)/2;}
+      if(px>=rx&&px<=rx+rw&&py>=ry&&py<=ry+rh)hits.push({kind:'seg',segId:s.id});
+    }
+  }
+  state.selIds=hits;renderAll();
+}
+function clearSnapPreview(){overlayLayer.querySelectorAll('.snap-marker').forEach(n=>n.remove());}
+function drawInsertPreview(e){ // 加珠/加耳工具：悬停动态预览插入点与结数分配
+  overlayLayer.querySelectorAll('.ins-preview').forEach(n=>n.remove());
+  const w=clientToWorld(e.clientX,e.clientY);
+  const hit=nearestSegFrac(w);if(!hit)return;
+  const seg=hit.seg;
+  const pr=seg.split&&hit.frac>=0.5?{list:seg.seqB,fA:0.5,fB:1}:partRange(seg,seg.seq[0]);
+  if(!pr.list)return;
+  const fr=seqFracs(pr.list,pr.fA,pr.fB);
+  let idx=fr.findIndex(x=>hit.frac>=x.f0&&hit.frac<x.f1);if(idx<0)idx=fr.length-1;
+  const ee=fr[idx];if(!ee||ee.p.t!=='k'||ee.p.n<=0)return;
+  const p=ee.p;
+  const i=clamp(Math.round((hit.frac-ee.f0)/(ee.f1-ee.f0)*p.n),0,p.n);
+  const pos=seg.type==='ring'?ringPointAtF(seg,hit.frac):bridgePointAtF(seg,hit.frac).p;
+  overlayLayer.appendChild(el('circle',{class:'ins-preview',cx:pos.x,cy:pos.y,r:5.5}));
+  const label=view.tool==='bead'
+    ?`←${i}结 ● ${defaults.beadQty}珠 ${p.n-i}结→`
+    :`←${i}结 ─耳${defaults.picotUnits}─ ${p.n-i}结→`;
+  const t=el('text',{class:'ins-preview-label',x:pos.x,y:pos.y-16});
+  t.textContent=label;overlayLayer.appendChild(t);
+}
+canvasWrap.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const f=e.deltaY<0?1.12:1/1.12;
+  const r=svg.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  const wx=(mx-view.pan.x)/view.zoom,wy=(my-view.pan.y)/view.zoom;
+  view.zoom=clamp(view.zoom*f,0.2,6);
+  view.pan.x=mx-wx*view.zoom;view.pan.y=my-wy*view.zoom;
+  applyViewport();
+},{passive:false});
+function deleteSelection(){
+  if(!state.selIds.length)return;
+  const idSet=new Set();
+  for(const s of state.selIds){
+    if(s.kind==='seg')idSet.add(s.segId);
+    else{
+      const f=findPart(s.partId||s.id);
+      if(f&&(s.kind==='bead'||s.kind==='picot'))removePart(f.seg,f.part);
+    }
+  }
+  if(idSet.size)deleteSegs(idSet);
+  state.selIds=[];pushHistory();renderAll();
+}
+window.addEventListener('keydown',e=>{
+  const f=isInputFocused();
+  if(e.code==='Space'&&!view.spaceDown&&!f){view.spaceDown=true;svg.classList.add('space');e.preventDefault();}
+  if(e.key==='Escape'){view.tool=null;state.selIds=[];renderAll();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){undo();e.preventDefault();}
+  if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='Z'))){redo();e.preventDefault();}
+  if((e.key==='Delete'||e.key==='Backspace')&&state.selIds.length&&!f){deleteSelection();e.preventDefault();}
+});
+window.addEventListener('keyup',e=>{if(e.code==='Space'){view.spaceDown=false;svg.classList.remove('space');}});
+function isInputFocused(){const t=document.activeElement;return t&&(t.tagName==='INPUT'||t.tagName==='SELECT'||t.tagName==='TEXTAREA');}
+
+/* ====================================================================
+   工具栏 / 左栏
+   ==================================================================== */
+document.getElementById('btnUndo').onclick=undo;
+document.getElementById('btnRedo').onclick=redo;
+document.getElementById('btnZoomIn').onclick=()=>{view.zoom=clamp(view.zoom*1.2,0.2,6);applyViewport();};
+document.getElementById('btnZoomOut').onclick=()=>{view.zoom=clamp(view.zoom/1.2,0.2,6);applyViewport();};
+document.getElementById('btnFit').onclick=()=>{view.zoom=1;view.pan={x:0,y:0};applyViewport();};
+document.getElementById('btnClear').onclick=clearAll;
+document.getElementById('btnSave').onclick=saveJSON;
+document.getElementById('btnLoad').onclick=()=>document.getElementById('fileInput').click();
+document.getElementById('btnPng').onclick=exportPNG;
+document.getElementById('btnList').onclick=exportList;
+const btnArrows=document.getElementById('btnArrows'),btnNumbers=document.getElementById('btnNumbers');
+btnArrows.classList.add('active');btnNumbers.classList.add('active');
+btnArrows.onclick=()=>{view.showArrows=!view.showArrows;btnArrows.classList.toggle('active',view.showArrows);renderElements();};
+btnNumbers.onclick=()=>{view.showNums=!view.showNums;btnNumbers.classList.toggle('active',view.showNums);renderElements();};
+document.querySelectorAll('.tpl-btn').forEach(b=>b.onclick=()=>loadTemplate(b.dataset.tpl));
+document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>addSegment(b.dataset.add));
+document.getElementById('addBeadBtn').onclick=()=>{view.tool=view.tool==='bead'?null:'bead';renderAll();};
+document.getElementById('addPicotBtn').onclick=()=>{view.tool=view.tool==='picot'?null:'picot';renderAll();};
+document.getElementById('grpMake').onclick=makeGroup;
+document.getElementById('grpCopy').onclick=copyGroup;
+document.getElementById('grpArray').onclick=arrayGroup;
+document.getElementById('grpUngroup').onclick=ungroup;
+document.getElementById('beadSizeRow').addEventListener('click',e=>{const b=e.target.closest('.size-btn');if(!b)return;defaults.beadSize=+b.dataset.size;document.querySelectorAll('#beadSizeRow .size-btn').forEach(x=>x.classList.toggle('active',x===b));});
+document.getElementById('beadMaterial').onchange=e=>defaults.beadMaterial=e.target.value;
+document.getElementById('beadColor').oninput=e=>defaults.beadColor=e.target.value;
+document.getElementById('beadQty').oninput=e=>defaults.beadQty=+e.target.value;
+document.getElementById('picotType').onchange=e=>defaults.picotType=e.target.value;
+document.getElementById('picotSize').oninput=e=>defaults.picotUnits=+e.target.value;
+document.getElementById('wireColor').oninput=e=>{design.threadColor=e.target.value;renderElements();};
+document.getElementById('wireColor').onchange=()=>pushHistory();
+document.getElementById('wireThick').oninput=e=>{design.threadThickness=clamp(+e.target.value||0.8,0.2,3);renderAll();};
+document.getElementById('wireThick').onchange=()=>pushHistory();
+
+/* ====================================================================
+   右栏属性
+   ==================================================================== */
+const MAT_N={pearl:'珍珠',metal:'金属',glass:'玻璃',acrylic:'亚克力',crystal:'晶石',seed:'米珠'};
+const PICOT_N={empty:'空接耳',bead:'带珠',split:'分裂',join:'接合'};
+function matOpts(sel){return ['pearl','metal','glass','acrylic','crystal','seed'].map(m=>`<option value="${m}" ${sel===m?'selected':''}>${MAT_N[m]}</option>`).join('');}
+function picotTypeOpts(sel){return ['empty','bead','split','join'].map(m=>`<option value="${m}" ${sel===m?'selected':''}>${PICOT_N[m]}</option>`).join('');}
+function junctionDesc(jid,seg){
+  const m=junctionMembers(jid).filter(x=>x.seg.id!==seg.id);
+  return m.length?m.map(x=>x.kind==='ringBase'?'基点@'+nameOfSeg(x.seg.id):x.kind==='splitNode'?'分裂点@'+nameOfSeg(x.seg.id):x.kind==='bridgeEnd'?nameOfSeg(x.seg.id)+x.end.toUpperCase()+'端':x.kind==='beadTip'?'珠簇@'+nameOfSeg(x.seg.id):'接耳@'+nameOfSeg(x.seg.id)).join('、'):'自由';
+}
+function renderProps(){
+  if(!state.selIds.length){
+    propsContent.innerHTML=`<div class="empty-tip"><div class="empty-icon">⤳</div><p>未选中编织单元</p><p class="empty-sub">点击线段/珠簇/接耳编辑；空白拖框多选；拖边缘调环形态</p></div>`;
+    return;
+  }
+  const s=state.selIds[0];
+  if(s.kind==='seg')renderSegProps(getSeg(s.segId));
+  else if(s.kind==='bead')renderBeadProps();
+  else renderPicotProps();
+}
+function partCardHTML(p,idx){
+  if(p.t==='k')return `<div class="card" data-part="${p.id}"><div class="c-head"><span class="c-title">子段${idx+1} · 结</span></div>
+    <div class="c-row">结数<input type="number" data-field="n" min="0" max="300" value="${p.n}"></div></div>`;
+  if(p.t==='b')return `<div class="card" data-part="${p.id}"><div class="c-head"><span class="c-title">珠簇${idx+1} · ${p.count}×${p.size}mm（穿于结间·不占线长）</span><span class="c-del" data-act="del-part">×</span></div>
+    <div class="c-row"><select data-field="size">${[2,3,4,6,8].map(x=>`<option value="${x}" ${p.size===x?'selected':''}>${x}mm</option>`).join('')}</select>
+    <select data-field="material">${matOpts(p.material)}</select></div>
+    <div class="c-row">数量<input type="number" data-field="count" min="1" max="12" value="${p.count}">
+    <input type="color" data-field="color" value="${p.color}"></div></div>`;
+  return `<div class="card" data-part="${p.id}"><div class="c-head"><span class="c-title">接耳${idx+1} · ${PICOT_N[p.type]}(${p.units}单位)${p.toJ?' · 已连接':' · 自由'}</span><span class="c-del" data-act="del-part">×</span></div>
+    <div class="c-row"><select data-field="ptype">${picotTypeOpts(p.type)}</select>
+    <input type="number" data-field="units" min="1" max="6" value="${p.units}"></div>
+    ${p.bead?`<div class="c-row">耳珠<input type="color" data-field="pbeadcolor" value="${p.bead.color}"></div>`:''}
+    ${p.toJ?`<div class="c-row"><button class="btn-add-small" style="width:100%;height:22px;margin:0" data-act="unlink-picot">断开耳连接</button></div>`:''}</div>`;
+}
+function renderSegProps(seg){
+  if(!seg){state.selIds=[];return renderProps();}
+  const isRing=seg.type==='ring';
+  const ku=knotUnits(seg),tu=totalUnits(seg),extra=tu-ku;
+  propsContent.innerHTML=`
+    <div class="section-head"><h3>${isRing?'环':'桥'}属性</h3><span class="type-badge">${nameOfSeg(seg.id)}${seg.split?' · 分裂环':''}</span></div>
+    <div class="len-readout">${isRing?'周长':'线长'} <b>${seqLenMm(seg).toFixed(1)}</b> mm（锁定）= ${tu}单位×${knotLenMm().toFixed(2)}mm<br>元宝结 <b>${ku}</b>（Σ子段标数）· 接耳额外占用 ${extra} 单位（珠不占线长）· 子段 ${seg.seq.filter(p=>p.t==='k').length+(seg.seqB?seg.seqB.filter(p=>p.t==='k').length:0)} 个</div>
+    <div class="prop-block"><label class="prop-label">元宝结总数（驱动尺寸）</label>
+      <input type="number" class="prop-input" id="knotInput" min="0" max="300" value="${ku}"></div>
+    ${isRing?`
+    <div class="prop-block"><label class="prop-label">椭圆扁度（选中环拖天蓝手柄同效·周长不变·焊点保持）</label>
+      <input type="range" class="prop-input" id="aspInput" min="0.4" max="1" step="0.01" value="${seg.aspect||0.8}"></div>
+    <div class="prop-block"><label class="prop-label">旋转 (°)（选中环拖紫色手柄同效·360°自由）</label>
+      <input type="range" class="prop-input" id="rotInput" min="-180" max="180" step="1" value="${Math.round(((seg.rot||0)%360+540)%360-180)}"></div>`:''}
+    <div class="prop-block"><label class="prop-label">${isRing?(seg.split?'基点（线A起终点）连接':'基点（起终点·可连接环/桥/珠）'):'A端连接'}</label>
+      <div class="prop-row"><span style="font-size:11px;flex:1">${junctionDesc(isRing?seg.baseJ:seg.aJ,seg)}</span>
+        <button class="btn-add-small" style="width:auto;height:22px;margin:0;padding:0 8px" data-unlink="${isRing?'base':'a'}">断开</button></div>
+      ${isRing&&seg.split?`<div class="prop-row"><span style="font-size:11px;flex:1">分裂点（线B起点）连接：${junctionDesc(seg.splitJ,seg)}</span>
+        <button class="btn-add-small" style="width:auto;height:22px;margin:0;padding:0 8px" data-unlink="split">断开</button></div>`:''}
+      ${!isRing?`<div class="prop-row"><span style="font-size:11px;flex:1">B端：${junctionDesc(seg.bJ,seg)}</span>
+        <button class="btn-add-small" style="width:auto;height:22px;margin:0;padding:0 8px" data-unlink="b">断开</button></div>`:''}</div>
+    <div class="prop-block"><label class="prop-label">段线材颜色</label>
+      <div class="prop-row"><input type="color" class="prop-color" id="segColor" value="${seg.color||design.threadColor}"><input type="text" class="prop-input" id="segColorT" value="${seg.color||design.threadColor}"></div></div>
+    <label class="prop-label">${seg.split?'线A':'子段序列'}（独立标数 · Σ标数=元宝结总数）</label>
+    ${seg.seq.map((p,i)=>partCardHTML(p,i)).join('')}
+    ${seg.split?`<label class="prop-label">线B（分裂点→基点 · 另一根线）</label>${(seg.seqB||[]).map((p,i)=>partCardHTML(p,i)).join('')}`:''}
+    <button class="btn-danger" id="delSeg">删除此${isRing?'环':'桥'}</button>`;
+  bindSegProps(seg);
+}
+function bindSegProps(seg){
+  const ki=document.getElementById('knotInput');
+  ki.oninput=e=>{ // 元宝结总数变化 → 调整首个结子段（珠/耳不扣结数）
+    const target=clamp(Math.floor(+e.target.value||0),0,300);
+    const cur=knotUnits(seg);
+    const diff=target-cur;
+    const firstK=seg.seq.find(p=>p.t==='k');
+    if(firstK){firstK.n=Math.max(0,firstK.n+diff);normalizeList(seg.seq);if(seg.seqB)normalizeList(seg.seqB);renderElements();updateStatus();}
+  };
+  ki.onchange=()=>{pushHistory();renderProps();};
+  if(seg.type==='ring'){
+    const asp=document.getElementById('aspInput'),rot=document.getElementById('rotInput');
+    asp.oninput=e=>{withPinnedBase(seg,()=>{seg.aspect=+e.target.value;});renderElements();};
+    asp.onchange=()=>pushHistory();
+    rot.oninput=e=>{seg.rot=+e.target.value;renderElements();};
+    rot.onchange=()=>pushHistory();
+  }
+  propsContent.querySelectorAll('[data-unlink]').forEach(btn=>btn.onclick=()=>{
+    const end=btn.dataset.unlink;
+    if(end==='base')unlinkJunction(seg.baseJ,seg);
+    else if(end==='split')unlinkJunction(seg.splitJ,seg);
+    else if(end==='a')unlinkJunction(seg.aJ,seg);
+    else unlinkJunction(seg.bJ,seg);
+    cleanupJunctions();pushHistory();renderAll();
+  });
+  const sc=document.getElementById('segColor'),sct=document.getElementById('segColorT');
+  sc.oninput=e=>{seg.color=e.target.value;sct.value=e.target.value;renderElements();};
+  sc.onchange=()=>pushHistory();
+  sct.onchange=e=>{seg.color=e.target.value;sc.value=e.target.value;renderElements();pushHistory();};
+  document.getElementById('delSeg').onclick=deleteSelection;
+  const allParts=[...seg.seq,...(seg.seqB||[])];
+  propsContent.querySelectorAll('.card[data-part]').forEach(card=>{
+    const part=allParts.find(x=>x.id===card.dataset.part);if(!part)return;
+    const host=(seg.seqB&&seg.seqB.includes(part))?seg.seqB:seg.seq;
+    card.querySelectorAll('[data-field]').forEach(inp=>{
+      const f=inp.dataset.field;
+      inp.addEventListener('input',()=>{
+        if(part.t==='k'){if(f==='n'){part.n=clamp(Math.floor(+inp.value||0),0,300);normalizeList(host);}}
+        else if(part.t==='b'){
+          if(f==='size')part.size=+inp.value;else if(f==='material')part.material=inp.value;
+          else if(f==='color')part.color=inp.value;
+          else if(f==='count'){part.count=clamp(Math.floor(+inp.value||1),1,12);part.bu=Math.max(1,Math.round(part.count*part.size/knotLenMm()));}
+        } else {
+          if(f==='ptype'){part.type=inp.value;if(part.type==='bead'&&!part.bead)part.bead={size:defaults.beadSize,material:defaults.beadMaterial,color:defaults.beadColor};}
+          else if(f==='units')part.units=clamp(Math.floor(+inp.value||1),1,6);
+          else if(f==='pbeadcolor'&&part.bead)part.bead.color=inp.value;
+        }
+        renderElements();updateStatus();
+      });
+      inp.addEventListener('change',()=>{pushHistory();renderProps();});
+    });
+    const del=card.querySelector('[data-act="del-part"]');
+    if(del)del.onclick=()=>{removePart(seg,part);pushHistory();renderAll();};
+    const ul=card.querySelector('[data-act="unlink-picot"]');
+    if(ul)ul.onclick=()=>{part.toJ=null;cleanupJunctions();pushHistory();renderAll();};
+  });
+}
+function renderBeadProps(){
+  const f=findPart(state.selIds[0].partId);
+  if(!f||f.part.t!=='b'){state.selIds=[];return renderProps();}
+  const p=f.part;
+  propsContent.innerHTML=`<div class="section-head"><h3>珠簇属性</h3><span class="type-badge">${p.count}颗 · 穿于结间不占线长</span></div>
+    <div class="prop-block"><label class="prop-label">单颗尺寸</label><select class="prop-sel" id="bSize">${[2,3,4,6,8].map(x=>`<option value="${x}" ${p.size===x?'selected':''}>${x}mm</option>`).join('')}</select></div>
+    <div class="prop-block"><label class="prop-label">材质</label><select class="prop-sel" id="bMat">${matOpts(p.material)}</select></div>
+    <div class="prop-block"><label class="prop-label">颜色</label><input type="color" class="prop-color" id="bColor" value="${p.color}"></div>
+    <div class="prop-block"><label class="prop-label">颗数（簇状排布：3=三角 / 5=1+2+2）</label><input type="number" class="prop-input" id="bCount" min="1" max="12" value="${p.count}"></div>
+    <button class="btn-danger" id="bDel">删除珠簇（回收线长）</button>`;
+  document.getElementById('bSize').onchange=e=>{p.size=+e.target.value;p.bu=Math.max(1,Math.round(p.count*p.size/knotLenMm()));pushHistory();renderAll();};
+  document.getElementById('bMat').onchange=e=>{p.material=e.target.value;pushHistory();renderAll();};
+  document.getElementById('bColor').oninput=e=>{p.color=e.target.value;renderElements();};
+  document.getElementById('bColor').onchange=()=>pushHistory();
+  document.getElementById('bCount').oninput=e=>{p.count=clamp(Math.floor(+e.target.value||1),1,12);p.bu=Math.max(1,Math.round(p.count*p.size/knotLenMm()));renderElements();updateStatus();};
+  document.getElementById('bCount').onchange=()=>{pushHistory();renderProps();};
+  document.getElementById('bDel').onclick=deleteSelection;
+}
+function renderPicotProps(){
+  const f=findPart(state.selIds[0].partId);
+  if(!f||f.part.t!=='p'){state.selIds=[];return renderProps();}
+  const p=f.part;
+  propsContent.innerHTML=`<div class="section-head"><h3>接耳属性</h3><span class="type-badge">${PICOT_N[p.type]} · ${p.units}单位</span></div>
+    <div class="prop-block"><label class="prop-label">类型</label><select class="prop-sel" id="pType">${picotTypeOpts(p.type)}</select></div>
+    <div class="prop-block"><label class="prop-label">长度（占用结数·1结=1单位）</label><input type="number" class="prop-input" id="pUnits" min="1" max="6" value="${p.units}"></div>
+    <div class="prop-block"><label class="prop-label">连接状态</label><div class="prop-row"><span style="font-size:11px;flex:1">${p.toJ?'已扣合 → '+junctionDesc(p.toJ,f.seg):'自由（拖末端靠近目标扣合）'}</span></div></div>
+    ${p.bead?`<div class="prop-block"><label class="prop-label">耳珠颜色</label><input type="color" class="prop-color" id="pBeadColor" value="${p.bead.color}"></div>`:''}
+    ${p.toJ?`<button class="btn-add-small" id="pUnlink">断开耳连接</button>`:''}
+    <button class="btn-danger" id="pDel">删除接耳</button>`;
+  document.getElementById('pType').onchange=e=>{p.type=e.target.value;if(p.type==='bead'&&!p.bead)p.bead={size:defaults.beadSize,material:defaults.beadMaterial,color:defaults.beadColor};pushHistory();renderAll();};
+  document.getElementById('pUnits').oninput=e=>{p.units=clamp(Math.floor(+e.target.value||1),1,6);renderElements();};
+  document.getElementById('pUnits').onchange=()=>{pushHistory();renderProps();};
+  if(p.bead){document.getElementById('pBeadColor').oninput=e=>{p.bead.color=e.target.value;renderElements();};document.getElementById('pBeadColor').onchange=()=>pushHistory();}
+  if(p.toJ)document.getElementById('pUnlink').onclick=()=>{p.toJ=null;cleanupJunctions();pushHistory();renderAll();};
+  document.getElementById('pDel').onclick=deleteSelection;
+}
+
+/* ====================================================================
+   保存 / 导出
+   ==================================================================== */
+function saveJSON(){
+  const data={version:6,threadColor:design.threadColor,threadThickness:design.threadThickness,elements:design.elements,junctions:design.junctions,groups:design.groups,savedAt:new Date().toISOString()};
+  downloadBlob(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'tatting-design.json');
+}
+document.getElementById('fileInput').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      design.elements=d.elements||[];design.junctions=d.junctions||[];design.groups=d.groups||[];
+      if(d.threadColor)design.threadColor=d.threadColor;
+      if(d.threadThickness)design.threadThickness=d.threadThickness;
+      document.getElementById('wireColor').value=design.threadColor;
+      document.getElementById('wireThick').value=design.threadThickness;
+      state.selIds=[];state.history=[];state.histIdx=-1;pushHistory();renderAll();
+      alert('已读取设计文件');
+    }catch(err){alert('读取失败：'+err.message);}
+  };
+  rd.readAsText(f);e.target.value='';
+});
+function exportPNG(){
+  if(design.elements.length===0){alert('画布为空');return;}
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  const ext=(x,y,m)=>{minX=Math.min(minX,x-m);minY=Math.min(minY,y-m);maxX=Math.max(maxX,x+m);maxY=Math.max(maxY,y+m);};
+  for(const s of design.elements){
+    if(s.type==='ring'){const{a,b}=ringAxesPx(s);ext(s.cx,s.cy,Math.max(a,b)+24);}
+    else{const g=bridgeGeom(s);ext(g.A.x,g.A.y,18);ext(g.B.x,g.B.y,18);ext(g.cx,g.cy,18);}
+  }
+  const pad=34,w=Math.max(100,maxX-minX+pad*2),h=Math.max(100,maxY-minY+pad*2);
+  const tmp=el('svg',{xmlns:SVGNS,width:w,height:h,viewBox:`${minX-pad} ${minY-pad} ${w} ${h}`});
+  const td=el('defs');tmp.appendChild(td);td.innerHTML=defs.innerHTML;
+  tmp.appendChild(el('rect',{x:minX-pad,y:minY-pad,width:w,height:h,fill:'#fff'}));
+  const tl=el('g');tmp.appendChild(tl);tl.innerHTML=elementsLayer.innerHTML;
+  const xml=new XMLSerializer().serializeToString(tmp);
+  const img=new Image();
+  img.onload=()=>{const sc=2;const c=document.createElement('canvas');c.width=w*sc;c.height=h*sc;const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);c.toBlob(b=>downloadBlob(b,'tatting-diagram.png'),'image/png');};
+  img.onerror=()=>alert('PNG 导出失败');
+  img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(xml)));
+}
+function exportList(){
+  if(design.elements.length===0){alert('画布为空');return;}
+  const L=[];
+  L.push('===== 梭编图解 · 编织工艺单 =====');
+  L.push(`生成：${new Date().toLocaleString('zh-CN')}`);
+  L.push(`线材：${design.threadColor} · 粗细 ${design.threadThickness}mm · 单位线长 ${knotLenMm().toFixed(2)}mm/结`);
+  L.push('');
+  let tK=0,tB=0,tP=0,tL=0;
+  design.elements.forEach((s,i)=>{
+    const len=seqLenMm(s);tL+=len;
+    const isRing=s.type==='ring';
+    L.push(`【${i+1}】${isRing?(s.split?'分裂环（两根线各编半环）':'环'):'桥'} · ${isRing?'周长':'线长'} ${len.toFixed(1)}mm · 元宝结总数 ${knotUnits(s)}（另接耳占用 ${totalUnits(s)-knotUnits(s)} 单位）`);
+    if(isRing){
+      const jd=junctionDesc(s.baseJ,s);
+      L.push(`    基点（起终点）连接：${jd==='自由'?'独立（闭合环）':jd}`);
+      if(s.split)L.push(`    分裂点连接：${junctionDesc(s.splitJ,s)}`);
+      L.push('    行进方向：自基点沿环闭合一周回到起点');
+    } else {
+      L.push(`    A端 → ${junctionDesc(s.aJ,s)}`);
+      L.push(`    B端 → ${junctionDesc(s.bJ,s)}`);
+    }
+    const seqDesc=(list,tag)=>{
+      const parts=list.map(p=>{
+        if(p.t==='k'){tK+=p.n;return `结${p.n}`;}
+        if(p.t==='b'){tB+=p.count;return `●${p.size}mm×${p.count}(${MAT_N[p.material]||p.material})`;}
+        tP++;return `耳(${p.units}单位${p.toJ?',扣合':'，自由'})`;
+      });
+      L.push(`    ${tag}序列：${parts.join(' → ')}`);
+    };
+    if(s.split){
+      seqDesc(s.seq,'线A（基点→分裂点）：');
+      if(s.seqB)seqDesc(s.seqB,'线B（分裂点→基点）：');
+    } else seqDesc(s.seq,'');
+    L.push('');
+  });
+  const warns=collectWarnings();
+  L.push('----- 工艺校验 -----');
+  L.push(warns.length?'⚠ '+warns.join('；'):'✓ 结构可编织：周长=结数×单位，连接无矛盾');
+  L.push('----- 统计 -----');
+  L.push(`元宝结 ${tK} · 珠子 ${tB} · 接耳 ${tP} · 总线长 ${tL.toFixed(1)}mm`);
+  L.push('======================');
+  downloadBlob(new Blob([L.join('\n')],{type:'text/plain;charset=utf-8'}),'tatting-process-list.txt');
+}
+function downloadBlob(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/* ---------- 初始化 ---------- */
+renderDefs();renderGrid();applyViewport();pushHistory();renderAll();
+window.addEventListener('resize',renderGrid);
+
+</script>
+</body>
+</html>
